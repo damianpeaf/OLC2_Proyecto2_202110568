@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300&family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300&family=Righteous&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*{
+    font-family: 'Chakra Petch', sans-serif;
+    scrollbar-width: thin;
+    scrollbar-color: #FA1E4E #1C1726;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+*::-webkit-scrollbar-track {
+    background: #1C1726;
+    border-radius: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: #FA1E4E;
+    border: 3px solid #FA1E4E;
+}
+
+body{
+    @apply bg-background-dark;
+}
+
+
+.console-font{
+    font-family: 'consolas', monospace;
+}
+
+@layer components {
+    .sidebar-icon {
+        @apply mx-auto flex items-center justify-center h-12 w-12 my-2 text-white text-2xl hover:bg-text-dark-theme-darker rounded-xl cursor-pointer transition-all relative;
+    }
+
+    .sidebar-hr {
+        @apply bg-gray-200 dark:bg-gray-800 
+        border border-gray-200 dark:border-gray-800 rounded-full
+        h-[1px]
+        mx-2;
+      }
+ 
+    .sidebar-item-tooltip{
+        @apply absolute bg-background-dark text-white text-sm rounded-lg p-2 shadow-lg;
+        @apply left-[65px] top-[10px] px-6 max-w-[200px] z-10;
+        @apply opacity-0 transition-all;
+        @apply pointer-events-none;
+        @apply text-center
+    }
+
+
+    .main-section{
+        display: grid;
+        height: 100%;
+        grid-template-rows: 5% 75% 20%;
+    }
+}
+
