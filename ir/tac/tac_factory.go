@@ -1,21 +1,27 @@
 package tac
 
+import "strconv"
+
 type TACFactory struct {
 	LabelCount int
 	TempCount  int
-	Block      TACBlock
-	heapPtr    *HeapPtr
-	stackPtr   *StackPtr
+	MainBlock  TACBlock
+	OutBlock   TACBlock // TODO
+	HeapCurr   int      // ?
+	StackCurr  int      // ?
+	Utility    *Utility
 }
 
 func NewTACFactory() *TACFactory {
-	hp := &HeapPtr{}
-	sp := &StackPtr{}
-	return &TACFactory{0, 0, make(TACBlock, 0), hp, sp}
+	return &TACFactory{0, 0, make(TACBlock, 0), make(TACBlock, 0), 0, 0, nil}
 }
 
 func (f *TACFactory) AppendToBlock(stmt TACStmtI) {
-	f.Block = append(f.Block, stmt)
+	f.MainBlock = append(f.MainBlock, stmt)
+}
+
+func (f *TACFactory) AppendBlock(block TACBlock) {
+	f.MainBlock = append(f.MainBlock, block...)
 }
 
 func (f *TACFactory) NewLabel() *Label {
@@ -67,11 +73,11 @@ func (f *TACFactory) NewUnconditionalJump() *UnconditionalJump {
 }
 
 func (f *TACFactory) NewHeapPtr() *HeapPtr {
-	return f.heapPtr
+	return &HeapPtr{}
 }
 
 func (f *TACFactory) NewStackPtr() *StackPtr {
-	return f.stackPtr
+	return &StackPtr{}
 }
 
 func (f *TACFactory) NewLiteral() *Literal {
@@ -92,4 +98,33 @@ func (f *TACFactory) NewPrint() *Print {
 
 func (f *TACFactory) NewComment() *Comment {
 	return &Comment{}
+}
+
+func (f *TACFactory) String() string {
+
+	header := "#include <stdio.h>\n" + "float stack[1000];\n" + "float heap[1000];\n" + "float P;\n" + "float H;\n"
+
+	var temps = ""
+
+	for i := 0; i < f.TempCount; i++ {
+		if i == 0 {
+			temps = "float "
+		}
+		temps += "t" + strconv.Itoa(i+1)
+
+		if i != f.TempCount-1 {
+			temps += ", "
+		} else {
+			temps += ";\n"
+		}
+	}
+	header += temps
+
+	main_block := "int main() {\n"
+	for _, stmt := range f.MainBlock {
+		main_block += "\t" + stmt.String() + "\n"
+	}
+	main_block += "return 0;\n}\n"
+
+	return header + main_block
 }

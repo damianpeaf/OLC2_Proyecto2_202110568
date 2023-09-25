@@ -36,6 +36,7 @@ export interface TSwiftState {
     errors: TSwiftError[];
     symbolTable: SymbolTableI | null;
     isSymbolTableModalOpen: boolean;
+    c3dContent: string;
 }
 
 interface TSwiftProviderProps {
@@ -54,7 +55,8 @@ const defaultState: TSwiftState = {
     graphviz: null,
     errors: [],
     symbolTable: null,
-    isSymbolTableModalOpen: false
+    isSymbolTableModalOpen: false,
+    c3dContent: ''
 }
 
 const TSwift_INITIAL_STATE: TSwiftState =

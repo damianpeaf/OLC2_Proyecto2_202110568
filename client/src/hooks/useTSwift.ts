@@ -8,6 +8,7 @@ export type ApiResponse = {
     errors: TSwiftError[] | null
     cstSvg: string
     scopeTrace: SymbolTableI | null
+    c3d: string
 }
 
 export const useTSwift = () => {
@@ -82,7 +83,8 @@ export const useTSwift = () => {
             body: formData
         })
 
-        const { errors, output, cstSvg, scopeTrace } = await res.json() as ApiResponse
+        const { errors, output, cstSvg, scopeTrace, c3d } = await res.json() as ApiResponse
+
 
 
         // * CST graphviz report
@@ -114,6 +116,7 @@ export const useTSwift = () => {
             dispatch({ type: 'set-errors', payload: { errors } })
             fireDangerToast('Programa ejecutado con errores')
         } else {
+            setC3DContent(c3d)
             fireScucessToast('Programa ejecutado con éxito')
         }
     }
@@ -142,6 +145,10 @@ export const useTSwift = () => {
         dispatch({ type: 'open-symbol-table-modal' })
     }
 
+    const setC3DContent = (content: string) => {
+        dispatch({ type: 'set-c3d', payload: { content } })
+    }
+
     return {
         ...state,
         openTerminal,
@@ -161,6 +168,7 @@ export const useTSwift = () => {
         toogleTerminal,
         setSymbolTable,
         closeSymbolTableModal,
-        openSymbolTableModal
+        openSymbolTableModal,
+        setC3DContent
     }
 }

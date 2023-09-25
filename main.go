@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
-	"github.com/damianpeaf/OLC2_Proyecto2_202110568/cst"
+	// "github.com/damianpeaf/OLC2_Proyecto2_202110568/cst"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/errors"
-	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/visitor"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/repl"
 
 	"github.com/antlr4-go/antlr/v4"
@@ -26,19 +26,19 @@ func main() {
 
 	app.Post("/compile", func(c *fiber.Ctx) error {
 
-		defer func() {
-			if r := recover(); r != nil {
-				fmt.Println("Recovered in f", r)
-			}
-		}()
+		// defer func() {
+		// 	if r := recover(); r != nil {
+		// 		fmt.Println("Recovered in f", r)
+		// 	}
+		// }()
 
 		startTime := time.Now()
 
-		resultChannel := make(chan string)
+		// resultChannel := make(chan string)
 
-		go func() {
-			resultChannel <- cst.CstReport(c.FormValue("code"))
-		}()
+		// go func() {
+		// 	resultChannel <- cst.CstReport(c.FormValue("code"))
+		// }()
 
 		code := c.FormValue("code")
 
@@ -70,10 +70,12 @@ func main() {
 		// ♻ End Recycle 'proyecto1' repl
 
 		// begin ir generation
-		irVisitor := ir.NewIrVisitor()
+		irVisitor := visitor.NewIrVisitor()
 		irVisitor.Visit(tree)
+		fmt.Println("IR generation finished")
+		fmt.Println(irVisitor.Factory.String())
 
-		cstReport := <-resultChannel
+		// cstReport := <-resultChannel
 
 		reportEndTime := time.Now()
 		fmt.Println("Interpretation finished")
@@ -87,11 +89,13 @@ func main() {
 			Output     string           `json:"output"`
 			CSTSvg     string           `json:"cstSvg"`
 			ScopeTrace repl.ReportTable `json:"scopeTrace"`
+			C3D        string           `json:"c3d"`
 		}{
-			Errors:     replVisitor.ErrorTable.Errors,
-			Output:     replVisitor.Console.GetOutput(),
-			CSTSvg:     cstReport,
+			Errors: replVisitor.ErrorTable.Errors,
+			Output: replVisitor.Console.GetOutput(),
+			// CSTSvg:     cstReport,
 			ScopeTrace: replVisitor.ScopeTrace.Report(),
+			C3D:        irVisitor.Factory.String(),
 		})
 
 	})

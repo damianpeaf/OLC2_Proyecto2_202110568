@@ -7,24 +7,26 @@ import (
 type CastType string
 
 const (
-	CAST_INT   CastType = "Int"
-	CAST_FLOAT CastType = "Float"
+	CAST_INT   CastType = "int"
+	CAST_FLOAT CastType = "float"
 )
 
-type SimpleValueType string
+type ValueType string
 
 const (
-	TempType     SimpleValueType = "Temp"
-	HeapPtrType  SimpleValueType = "HeapPtr"
-	StackPtrType SimpleValueType = "StackPtr"
-	LiteralType  SimpleValueType = "Literal"
+	TempType     ValueType = "Temp"
+	HeapPtrType  ValueType = "HeapPtr"
+	StackPtrType ValueType = "StackPtr"
+	LiteralType  ValueType = "Literal"
+	HeapIndex    ValueType = "HeapIndex"
+	StackIndex   ValueType = "StackIndex"
 )
 
 // * Simple values
 type SimpleValue interface {
 	TACStmtI
 	Cast() CastType
-	Type() SimpleValueType
+	Type() ValueType
 }
 
 // ** Temp
@@ -44,7 +46,7 @@ func (t *Temp) TempName() string {
 	return "t" + strconv.Itoa(t.ID)
 }
 
-func (t *Temp) Type() SimpleValueType {
+func (t *Temp) Type() ValueType {
 	return TempType
 }
 
@@ -59,33 +61,55 @@ func (t *Temp) SetCast(castType CastType) *Temp {
 }
 
 // ** HeapPtr
-type HeapPtr struct{}
+type HeapPtr struct {
+	CastType CastType
+}
 
 func (h *HeapPtr) String() string {
+	if h.CastType != "" {
+		return "(" + string(h.CastType) + ") " + "H"
+	}
 	return "H"
 }
 
-func (h *HeapPtr) Type() SimpleValueType {
+func (h *HeapPtr) Type() ValueType {
 	return HeapPtrType
 }
 
 func (h *HeapPtr) Cast() CastType {
-	return ""
+	return h.CastType
+}
+
+// builder utils
+func (h *HeapPtr) SetCast(castType CastType) *HeapPtr {
+	h.CastType = castType
+	return h
 }
 
 // ** StackPtr
-type StackPtr struct{}
+type StackPtr struct {
+	CastType CastType
+}
 
 func (s *StackPtr) String() string {
+	if s.CastType != "" {
+		return "(" + string(s.CastType) + ") " + "P"
+	}
 	return "P"
 }
 
-func (s *StackPtr) Type() SimpleValueType {
+func (s *StackPtr) Type() ValueType {
 	return StackPtrType
 }
 
 func (s *StackPtr) Cast() CastType {
-	return ""
+	return s.CastType
+}
+
+// builder utils
+func (s *StackPtr) SetCast(castType CastType) *StackPtr {
+	s.CastType = castType
+	return s
 }
 
 // ** Literal
@@ -97,7 +121,7 @@ func (l *Literal) String() string {
 	return l.Value
 }
 
-func (l *Literal) Type() SimpleValueType {
+func (l *Literal) Type() ValueType {
 	return LiteralType
 }
 
@@ -114,16 +138,34 @@ func (l *Literal) SetValue(value string) *Literal {
 // * Indexed values
 
 type IndexedValue interface {
+	SimpleValue
 	Index() SimpleValue
+	Cast() CastType
 }
 
 // ** HeapPtrIndexed
 
 type HeapIndexedValue struct {
 	IndexValue SimpleValue
+	CastType   CastType
+}
+
+func (h *HeapIndexedValue) Cast() CastType {
+	return h.CastType
+}
+
+func (h *HeapIndexedValue) Type() ValueType {
+	return HeapIndex
 }
 
 func (h *HeapIndexedValue) String() string {
+	if h.CastType != "" {
+		return "(" + string(h.CastType) + ") " + h.getName()
+	}
+	return h.getName()
+}
+
+func (h *HeapIndexedValue) getName() string {
 	return "heap[" + h.IndexValue.String() + "]"
 }
 
@@ -141,14 +183,29 @@ func (h *HeapIndexedValue) SetIndex(indexValue SimpleValue) *HeapIndexedValue {
 
 type StackIndexedValue struct {
 	IndexValue SimpleValue
+	CastType   CastType
 }
 
 func (s *StackIndexedValue) String() string {
-	return "stack[" + s.IndexValue.String() + "]"
+	if s.CastType != "" {
+		return "(" + string(s.CastType) + ") " + s.getName()
+	}
+	return s.getName()
 }
 
+func (s *StackIndexedValue) getName() string {
+	return "stack[" + s.IndexValue.String() + "]"
+}
 func (s *StackIndexedValue) Index() SimpleValue {
 	return s.IndexValue
+}
+
+func (s *StackIndexedValue) Cast() CastType {
+	return ""
+}
+
+func (s *StackIndexedValue) Type() ValueType {
+	return StackIndex
 }
 
 // builder utils

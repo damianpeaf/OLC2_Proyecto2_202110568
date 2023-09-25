@@ -4,6 +4,7 @@ import { Console } from '../console';
 import { RenameModal, SymbolTableModal } from '../modal';
 import { AstModal } from '../modal/AstModal';
 import { Toaster } from 'react-hot-toast'
+import { C3D } from '../c3d';
 
 export const Main = () => {
     return (
@@ -26,9 +27,10 @@ export const Main = () => {
             >
                 <Tabs />
                 <article
-                    className='h-full'
+                    className='h-full grid grid-cols-2 gap-x-1'
                 >
                     <Editor />
+                    <C3D />
                     <Console />
                 </article>
             </section>

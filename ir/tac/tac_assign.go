@@ -1,24 +1,20 @@
 package tac
 
-type ArithmeticOperator string
-
 const (
-	PLUS     ArithmeticOperator = "+"
-	MINUS    ArithmeticOperator = "-"
-	MULTIPLY ArithmeticOperator = "*"
-	DIVIDE   ArithmeticOperator = "/"
-	MOD      ArithmeticOperator = "%"
+	PLUS     string = "+"
+	MINUS    string = "-"
+	MULTIPLY string = "*"
+	DIVIDE   string = "/"
+	MOD      string = "%"
 )
 
-type BoolOperator string
-
 const (
-	EQ  BoolOperator = "=="
-	NEQ BoolOperator = "!="
-	GT  BoolOperator = ">"
-	GTE BoolOperator = ">="
-	LT  BoolOperator = "<"
-	LTE BoolOperator = "<="
+	EQ  string = "=="
+	NEQ string = "!="
+	GT  string = ">"
+	GTE string = ">="
+	LT  string = "<"
+	LTE string = "<="
 )
 
 type TACAssigment struct {
@@ -30,7 +26,7 @@ type CompoundAssignment struct {
 	TACAssigment
 	Left     SimpleValue
 	Right    SimpleValue
-	Operator ArithmeticOperator
+	Operator string
 }
 
 func (c *CompoundAssignment) String() string {
@@ -48,7 +44,7 @@ func (c *CompoundAssignment) SetRight(right SimpleValue) *CompoundAssignment {
 	return c
 }
 
-func (c *CompoundAssignment) SetOperator(operator ArithmeticOperator) *CompoundAssignment {
+func (c *CompoundAssignment) SetOperator(operator string) *CompoundAssignment {
 	c.Operator = operator
 	return c
 }
@@ -82,7 +78,7 @@ func (s *SimpleAssignment) SetAssignee(assignee SimpleValue) *SimpleAssignment {
 
 // ** BoolExpression
 type BoolExpression struct {
-	Operator BoolOperator
+	Operator string
 	Left     SimpleValue
 	Right    SimpleValue
 }

@@ -81,6 +81,11 @@ export type TSwiftActionType =
         type: 'open-symbol-table-modal'
     } | {
         type: 'close-symbol-table-modal'
+    } | {
+        type: 'set-c3d',
+        payload: {
+            content: string
+        }
     }
 
 export const TSwiftReducer = (state: TSwiftState, action: TSwiftActionType): TSwiftState => {
@@ -230,6 +235,11 @@ export const TSwiftReducer = (state: TSwiftState, action: TSwiftActionType): TSw
             return {
                 ...state,
                 isSymbolTableModalOpen: false
+            }
+        case 'set-c3d':
+            return {
+                ...state,
+                c3dContent: action.payload.content
             }
         default:
             return state;
