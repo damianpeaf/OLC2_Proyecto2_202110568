@@ -2,11 +2,12 @@ package repl
 
 import (
 	"fmt"
-	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
-	"github.com/damianpeaf/OLC2_Proyecto2_202110568/value"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/value"
 
 	"github.com/antlr4-go/antlr/v4"
 )

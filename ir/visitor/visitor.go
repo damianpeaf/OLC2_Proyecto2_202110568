@@ -11,6 +11,7 @@ type IrVisitor struct {
 	Factory    *tac.TACFactory
 	ScopeTrace *abstract.ScopeTrace
 	Utility    *tac.Utility
+	Strats     map[string]BinaryStrategy
 }
 
 func NewIrVisitor() *IrVisitor {
@@ -18,9 +19,15 @@ func NewIrVisitor() *IrVisitor {
 	scopeTrace := abstract.NewScopeTrace(factory)
 	util := tac.NewUtility(factory)
 	factory.Utility = util
-	return &IrVisitor{
+
+	visitor := &IrVisitor{
 		Factory:    factory,
 		ScopeTrace: scopeTrace,
 		Utility:    util,
 	}
+
+	strats := NewBinaryStrats(visitor)
+	visitor.Strats = strats
+
+	return visitor
 }

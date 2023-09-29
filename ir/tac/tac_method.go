@@ -9,10 +9,10 @@ type MethodDcl struct {
 func (m *MethodDcl) String() string {
 	blockStr := ""
 	for _, stmt := range m.Block {
-		blockStr += stmt.String() + "\n"
+		blockStr += "\t" + stmt.String() + "\n"
 	}
 	blockStr += "return;\n"
-	return "void " + m.Name + "() {\n" + blockStr + "}"
+	return "\nvoid " + m.Name + "() {\n" + blockStr + "}\n"
 }
 
 // builder utils

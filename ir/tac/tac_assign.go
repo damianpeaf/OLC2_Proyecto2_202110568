@@ -97,3 +97,8 @@ func (b *BoolExpression) SetRight(right SimpleValue) *BoolExpression {
 	b.Right = right
 	return b
 }
+
+func (b *BoolExpression) SetOp(operator string) *BoolExpression {
+	b.Operator = operator
+	return b
+}

@@ -135,6 +135,11 @@ func (l *Literal) SetValue(value string) *Literal {
 	return l
 }
 
+func (t *Literal) SetCast(castType CastType) *Literal {
+	// ?
+	return t
+}
+
 // * Indexed values
 
 type IndexedValue interface {
@@ -166,7 +171,7 @@ func (h *HeapIndexedValue) String() string {
 }
 
 func (h *HeapIndexedValue) getName() string {
-	return "heap[" + h.IndexValue.String() + "]"
+	return "heap[ (int) " + h.IndexValue.String() + "]"
 }
 
 func (h *HeapIndexedValue) Index() SimpleValue {
@@ -177,6 +182,11 @@ func (h *HeapIndexedValue) Index() SimpleValue {
 func (h *HeapIndexedValue) SetIndex(indexValue SimpleValue) *HeapIndexedValue {
 	h.IndexValue = indexValue
 	return h
+}
+
+func (t *HeapIndexedValue) SetCast(castType CastType) *HeapIndexedValue {
+	// ?
+	return t
 }
 
 // ** StackPtrIndexed
@@ -194,7 +204,7 @@ func (s *StackIndexedValue) String() string {
 }
 
 func (s *StackIndexedValue) getName() string {
-	return "stack[" + s.IndexValue.String() + "]"
+	return "stack[ (int) " + s.IndexValue.String() + "]"
 }
 func (s *StackIndexedValue) Index() SimpleValue {
 	return s.IndexValue
@@ -212,4 +222,31 @@ func (s *StackIndexedValue) Type() ValueType {
 func (s *StackIndexedValue) SetIndex(indexValue SimpleValue) *StackIndexedValue {
 	s.IndexValue = indexValue
 	return s
+}
+
+func (t *StackIndexedValue) SetCast(castType CastType) *StackIndexedValue {
+	// ?
+	return t
+}
+
+// --- utils ---
+
+func AddCastToSimpleValue(sv SimpleValue, cast CastType) SimpleValue {
+
+	switch val := sv.(type) {
+	case *Temp:
+		return val.SetCast(cast)
+	case *HeapPtr:
+		return val.SetCast(cast)
+	case *StackPtr:
+		return val.SetCast(cast)
+	case *Literal:
+		return val.SetCast(cast)
+	case *HeapIndexedValue:
+		return val.SetCast(cast)
+	case *StackIndexedValue:
+		return val.SetCast(cast)
+	default:
+		panic("Unknown simple value type")
+	}
 }

@@ -73,7 +73,8 @@ func main() {
 		irVisitor := visitor.NewIrVisitor()
 		irVisitor.Visit(tree)
 		fmt.Println("IR generation finished")
-		fmt.Println(irVisitor.Factory.String())
+		irResult := irVisitor.Factory.String()
+		fmt.Println(irResult)
 
 		// cstReport := <-resultChannel
 
@@ -95,7 +96,7 @@ func main() {
 			Output: replVisitor.Console.GetOutput(),
 			// CSTSvg:     cstReport,
 			ScopeTrace: replVisitor.ScopeTrace.Report(),
-			C3D:        irVisitor.Factory.String(),
+			C3D:        irResult,
 		})
 
 	})

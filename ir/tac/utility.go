@@ -1,6 +1,8 @@
 package tac
 
-import "strconv"
+import (
+	"strconv"
+)
 
 type Utility struct {
 	factory *TACFactory
@@ -12,9 +14,9 @@ func NewUtility(factory *TACFactory) *Utility {
 
 func (u *Utility) SaveValOnStack(val SimpleValue) int {
 
-	indexLiteral := u.factory.NewStackPtr().SetCast(CAST_INT)                       // (int) P
-	stackIndexed := u.factory.NewStackIndexed().SetIndex(indexLiteral)              // stack[P]
-	assign := u.factory.NewSimpleAssignment().SetAssignee(stackIndexed).SetVal(val) // stack[P] = val
+	indexLiteral := u.factory.NewStackPtr()                                         //  P
+	stackIndexed := u.factory.NewStackIndexed().SetIndex(indexLiteral)              // stack[ (int) P]
+	assign := u.factory.NewSimpleAssignment().SetAssignee(stackIndexed).SetVal(val) // stack[ (int) P] = val
 
 	// u.factory.AppendToBlock(u.factory.NewComment().SetComment("Saving value on stack"))
 	u.factory.AppendToBlock(assign)
@@ -48,7 +50,7 @@ func (u *Utility) NilValue() *Literal {
 }
 
 func (u *Utility) SaveValOnHeap(val SimpleValue) int {
-	indexLiteral := u.factory.NewHeapPtr().SetCast(CAST_INT)                        // H(int)
+	indexLiteral := u.factory.NewHeapPtr()                                          // H
 	stackIndexed := u.factory.NewHeapIndexed().SetIndex(indexLiteral)               // heap[H(int)]
 	assign := u.factory.NewSimpleAssignment().SetAssignee(stackIndexed).SetVal(val) // heap[H(int)] = val
 
@@ -85,4 +87,26 @@ func (u *Utility) SaveString(stream string) *Temp {
 	u.SaveValOnHeap(u.factory.NewLiteral().SetValue("0"))
 
 	return startAddressTemporal
+}
+
+// Concats strings on heap and returns the temporal with the start address of the new string
+func (u *Utility) ConcatStrings(s1, s2 SimpleValue) *Temp {
+	params := u.factory.GetBuiltinParams("__concat")
+
+	firstAddress := params[0]
+	secondAddress := params[1]
+	resultAddress := params[2]
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(firstAddress).SetVal(s1)
+	u.factory.AppendToBlock(assignS1)
+
+	assignS2 := u.factory.NewSimpleAssignment().SetAssignee(secondAddress).SetVal(s2)
+	u.factory.AppendToBlock(assignS2)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__concat")
+	u.factory.AppendToBlock(call)
+
+	return resultAddress
 }

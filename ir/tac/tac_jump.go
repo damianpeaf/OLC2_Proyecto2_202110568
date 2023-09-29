@@ -2,7 +2,7 @@ package tac
 
 // ** ConditionalJump
 type ConditionalJump struct {
-	Condition BoolExpression
+	Condition *BoolExpression
 	Target    *Label
 }
 
@@ -11,7 +11,7 @@ func (c *ConditionalJump) String() string {
 }
 
 // builder utils
-func (c *ConditionalJump) SetCondition(condition BoolExpression) *ConditionalJump {
+func (c *ConditionalJump) SetCondition(condition *BoolExpression) *ConditionalJump {
 	c.Condition = condition
 	return c
 }

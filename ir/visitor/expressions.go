@@ -81,8 +81,17 @@ func (v *IrVisitor) VisitBinaryExp(ctx *compiler.BinaryExpContext) interface{} {
 	left := v.Visit(ctx.GetLeft()).(*ValueWrapper)
 	right := v.Visit(ctx.GetRight()).(*ValueWrapper)
 
-	return &ValueWrapper{
-		Val:      v.Utility.ArithmeticOperation(left.Val, right.Val, op),
-		Metadata: left.Metadata,
+	strat, ok := v.Strats[op]
+
+	if !ok {
+		panic("No strategy for " + op)
 	}
+
+	ok, result := strat.Validate(left, right)
+
+	if !ok {
+		panic("Error on strat for " + op)
+	}
+
+	return result
 }

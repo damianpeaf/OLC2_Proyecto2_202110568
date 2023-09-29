@@ -1,19 +1,23 @@
 package tac
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type TACFactory struct {
-	LabelCount int
-	TempCount  int
-	MainBlock  TACBlock
-	OutBlock   TACBlock // TODO
-	HeapCurr   int      // ?
-	StackCurr  int      // ?
-	Utility    *Utility
+	LabelCount         int
+	TempCount          int
+	MainBlock          TACBlock
+	OutBlock           TACBlock // TODO
+	HeapCurr           int      // ?
+	StackCurr          int      // ?
+	Utility            *Utility
+	RegisteredBuiltins map[string][]*Temp
 }
 
 func NewTACFactory() *TACFactory {
-	return &TACFactory{0, 0, make(TACBlock, 0), make(TACBlock, 0), 0, 0, nil}
+	return &TACFactory{0, 0, make(TACBlock, 0), make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp)}
 }
 
 func (f *TACFactory) AppendToBlock(stmt TACStmtI) {
@@ -100,11 +104,33 @@ func (f *TACFactory) NewComment() *Comment {
 	return &Comment{}
 }
 
+func (f *TACFactory) registerBuiltins() {
+
+	if f.RegisteredBuiltins["__concat"] != nil {
+		fmt.Println("Builtin __concat already registered")
+		f.OutBlock = append(f.OutBlock, f.ConcatBuiltIn())
+	}
+
+}
+
+func (s *TACFactory) GetBuiltinParams(name string) []*Temp {
+	params := s.RegisteredBuiltins[name]
+
+	if params == nil {
+		params = s.reserveParams(name)
+		s.RegisteredBuiltins[name] = params
+	}
+
+	return params
+}
+
 func (f *TACFactory) String() string {
 
-	header := "#include <stdio.h>\n" + "float stack[1000];\n" + "float heap[1000];\n" + "float P;\n" + "float H;\n"
+	header := "#include <stdio.h>\n" + "float stack[10000];\n" + "float heap[10000];\n" + "float P;\n" + "float H;\n"
 
 	var temps = ""
+
+	f.registerBuiltins()
 
 	for i := 0; i < f.TempCount; i++ {
 		if i == 0 {
@@ -126,5 +152,10 @@ func (f *TACFactory) String() string {
 	}
 	main_block += "return 0;\n}\n"
 
-	return header + main_block
+	out_block := ""
+	for _, stmt := range f.OutBlock {
+		out_block += stmt.String() + "\n"
+	}
+
+	return header + out_block + main_block
 }
