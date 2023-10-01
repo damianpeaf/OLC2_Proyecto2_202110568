@@ -35,7 +35,7 @@ func (u *Utility) IncreaseStackPtr() {
 	u.factory.StackCurr++
 }
 
-func (u *Utility) ArithmeticOperation(left SimpleValue, right SimpleValue, operator string) *Temp {
+func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator string) *Temp {
 	temp := u.factory.NewTemp()
 	assign := u.factory.NewCompoundAssignment().SetAssignee(temp).SetLeft(left).SetRight(right).SetOperator(operator) // temp = left operator right
 
@@ -109,4 +109,42 @@ func (u *Utility) ConcatStrings(s1, s2 SimpleValue) *Temp {
 	u.factory.AppendToBlock(call)
 
 	return resultAddress
+}
+
+func (u *Utility) ConcatCharStrings(s1, s2 SimpleValue, charFirst bool) *Temp {
+
+	u.factory.AppendToBlock(u.factory.NewComment().SetComment("---- converting char to string ----"))
+	charHeapAddress := u.factory.NewTemp()
+	assign := u.factory.NewSimpleAssignment().SetAssignee(charHeapAddress).SetVal(u.factory.NewHeapPtr())
+	u.factory.AppendToBlock(assign)
+
+	// convert char to strings
+	if charFirst {
+		u.SaveValOnHeap(s1)
+	} else {
+		u.SaveValOnHeap(s2)
+	}
+	// null terminated
+	u.SaveValOnHeap(u.factory.NewLiteral().SetValue("0"))
+
+	// concat strings
+	u.factory.AppendToBlock(u.factory.NewComment().SetComment("---- concatenating strings ----"))
+	if charFirst {
+		return u.ConcatStrings(charHeapAddress, s2)
+	}
+	return u.ConcatStrings(s1, charHeapAddress)
+}
+
+func (u *Utility) PrintNil() {
+	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('n'))))
+	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('i'))))
+	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('l'))))
+}
+
+func (u *Utility) PrintSpace() {
+	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa(' '))))
+}
+
+func (u *Utility) PrintNewLine() {
+	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('\n'))))
 }

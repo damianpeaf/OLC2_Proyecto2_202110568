@@ -109,14 +109,14 @@ export const useTSwift = () => {
         // * Set terminal content
         setTerminalContent(output)
 
-        // * Set errors
+        setC3DContent(c3d)
 
+        // * Set errors
         // * Fire toast
         if (errors) {
             dispatch({ type: 'set-errors', payload: { errors } })
             fireDangerToast('Programa ejecutado con errores')
         } else {
-            setC3DContent(c3d)
             fireScucessToast('Programa ejecutado con éxito')
         }
     }

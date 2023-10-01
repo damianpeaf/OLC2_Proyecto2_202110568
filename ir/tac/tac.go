@@ -41,10 +41,16 @@ const (
 type Print struct {
 	Val  SimpleValue
 	Mode PrintModeType
+	Cast string
 }
 
 func (p *Print) String() string {
-	return "print(" + string(p.Mode) + ", " + p.Val.String() + ")"
+	castStr := ""
+	if p.Cast != "" {
+		castStr = "(" + p.Cast + ")"
+	}
+
+	return "printf(\"" + string(p.Mode) + "\", " + castStr + " " + p.Val.String() + ");"
 }
 
 // builder utils
@@ -55,6 +61,11 @@ func (p *Print) SetVal(val SimpleValue) *Print {
 
 func (p *Print) SetMode(mode PrintModeType) *Print {
 	p.Mode = mode
+	return p
+}
+
+func (p *Print) SetCast(cast string) *Print {
+	p.Cast = cast
 	return p
 }
 

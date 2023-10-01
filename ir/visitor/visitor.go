@@ -12,6 +12,7 @@ type IrVisitor struct {
 	ScopeTrace *abstract.ScopeTrace
 	Utility    *tac.Utility
 	Strats     map[string]BinaryStrategy
+	UnStrats   map[string]UnaryStrategy
 }
 
 func NewIrVisitor() *IrVisitor {
@@ -28,6 +29,9 @@ func NewIrVisitor() *IrVisitor {
 
 	strats := NewBinaryStrats(visitor)
 	visitor.Strats = strats
+
+	unStrats := NewUnaryStrats(visitor)
+	visitor.UnStrats = unStrats
 
 	return visitor
 }

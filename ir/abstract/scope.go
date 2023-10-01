@@ -6,12 +6,12 @@ import (
 
 // ***** BASE SCOPE *****
 type BaseScope struct {
-	Name     string
-	Parent   *BaseScope
-	Children []*BaseScope
-	IVORS    map[string]*IVOR
-	Factory  *tac.TACFactory
-	// functions  map[string]value.IVOR
+	Name      string
+	Parent    *BaseScope
+	Children  []*BaseScope
+	Variables map[string]*IVOR
+	Factory   *tac.TACFactory
+	Functions map[string]*Function
 	// structs    map[string]*Struct
 }
 
@@ -27,27 +27,61 @@ func (s *BaseScope) NewVariable(name string, val tac.SimpleValue, _type string) 
 	s.Factory.AppendToBlock(s.Factory.NewComment().SetComment("Variable " + name + ": " + _type))
 	stackAddress := s.Factory.Utility.SaveValOnStack(val)
 
-	s.IVORS[name] = &IVOR{
+	s.Variables[name] = &IVOR{
 		Name:    name,
 		Type:    _type,
 		Address: stackAddress,
 	}
 }
 
-// TODO: GetVariable
+func (s *BaseScope) GetVariable(pattern string) *IVOR {
+	// TODO: check if pattern refers to a struct field
+	// TODO: check if pattern refers to a pointer
+	aux := s
+	for aux != nil {
+		if aux.Variables[pattern] != nil {
+			return aux.Variables[pattern]
+		}
+		aux = aux.Parent
+	}
+	return nil
+}
+
 // TODO: searchObjectVariable
 
-// TODO: NewFunction
-// TODO: GetFunction
+func (s *BaseScope) NewFunction(name string, params []*Param) *Function {
+
+	createdFunc := &Function{
+		Name:  name,
+		Param: params,
+	}
+
+	s.Functions[name] = createdFunc
+
+	return createdFunc
+}
+
+func (s *BaseScope) GetFunction(name string) *Function {
+	// TODO: check if function is a method
+	aux := s
+	for aux != nil {
+		if aux.Functions[name] != nil {
+			return aux.Functions[name]
+		}
+		aux = aux.Parent
+	}
+	return nil
+}
+
 // TODO: searchObjectFunction
 
 // TODO: NewStruct
 // TODO: GetStruct
 
 func (s *BaseScope) Reset() {
-	s.IVORS = make(map[string]*IVOR)
+	s.Variables = make(map[string]*IVOR)
 	// s.children = make([]*BaseScope, 0)
-	// s.functions = make(map[string]value.IVOR)
+	s.Functions = make(map[string]*Function)
 }
 
 // ***** SCOPE TRACE *****
@@ -59,21 +93,30 @@ type ScopeTrace struct {
 
 func NewGlobalScope(factory *tac.TACFactory) *BaseScope {
 	// TODO: register built-in functions
+
+	initialFuncs := make(map[string]*Function)
+	initialFuncs["print"] = &Function{
+		Name: "print",
+		Type: BUILTIN_FUNCTION,
+	}
+
 	return &BaseScope{
-		Name:     "global",
-		IVORS:    make(map[string]*IVOR),
-		Children: make([]*BaseScope, 0),
-		Parent:   nil,
+		Name:      "global",
+		Variables: make(map[string]*IVOR),
+		Functions: initialFuncs,
+		Children:  make([]*BaseScope, 0),
+		Parent:    nil,
 	}
 }
 
 func NewLocalScope(name string, factory *tac.TACFactory) *BaseScope {
 	return &BaseScope{
-		Name:     name,
-		IVORS:    make(map[string]*IVOR),
-		Children: make([]*BaseScope, 0),
-		Parent:   nil,
-		Factory:  factory,
+		Name:      name,
+		Variables: make(map[string]*IVOR),
+		Functions: make(map[string]*Function),
+		Children:  make([]*BaseScope, 0),
+		Parent:    nil,
+		Factory:   factory,
 	}
 }
 
@@ -92,6 +135,22 @@ func (s *ScopeTrace) PopScope() {
 
 func (s *ScopeTrace) Reset() {
 	s.CurrentScope = s.GlobalScope
+}
+
+func (s *ScopeTrace) NewVariable(name string, val tac.SimpleValue, _type string) {
+	s.CurrentScope.NewVariable(name, val, _type)
+}
+
+func (s *ScopeTrace) GetVariable(pattern string) *IVOR {
+	return s.CurrentScope.GetVariable(pattern)
+}
+
+func (s *ScopeTrace) NewFunction(name string, params []*Param) *Function {
+	return s.CurrentScope.NewFunction(name, params)
+}
+
+func (s *ScopeTrace) GetFunction(name string) *Function {
+	return s.CurrentScope.GetFunction(name)
 }
 
 func NewScopeTrace(factory *tac.TACFactory) *ScopeTrace {

@@ -5,6 +5,8 @@ import (
 
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
 func (v *IrVisitor) Visit(tree antlr.ParseTree) interface{} {
@@ -59,4 +61,11 @@ func (v *IrVisitor) VisitStmt(ctx *compiler.StmtContext) interface{} {
 	}
 
 	return nil
+}
+
+func (v *IrVisitor) GetNilVW() *value.ValueWrapper {
+	return &value.ValueWrapper{
+		Val:      v.Utility.NilValue(),
+		Metadata: abstract.IVOR_NIL,
+	}
 }

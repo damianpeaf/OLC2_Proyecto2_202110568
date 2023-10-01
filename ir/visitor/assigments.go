@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
 func (v *IrVisitor) VisitType(ctx *compiler.TypeContext) interface{} {
@@ -13,9 +14,9 @@ func (v *IrVisitor) VisitType(ctx *compiler.TypeContext) interface{} {
 func (v *IrVisitor) VisitTypeValueDecl(ctx *compiler.TypeValueDeclContext) interface{} {
 
 	varName := ctx.ID().GetText()
-	valueWrapper := v.Visit(ctx.Expr()).(*ValueWrapper)
+	vw := v.Visit(ctx.Expr()).(*value.ValueWrapper)
 
-	v.ScopeTrace.CurrentScope.NewVariable(varName, valueWrapper.Val, valueWrapper.Metadata)
+	v.ScopeTrace.CurrentScope.NewVariable(varName, vw.Val, vw.Metadata)
 
 	return nil
 }
@@ -23,7 +24,7 @@ func (v *IrVisitor) VisitTypeValueDecl(ctx *compiler.TypeValueDeclContext) inter
 func (v *IrVisitor) VisitValueDecl(ctx *compiler.ValueDeclContext) interface{} {
 
 	varName := ctx.ID().GetText()
-	varValue := v.Visit(ctx.Expr()).(*ValueWrapper)
+	varValue := v.Visit(ctx.Expr()).(*value.ValueWrapper)
 
 	v.ScopeTrace.CurrentScope.NewVariable(varName, varValue.Val, varValue.Metadata)
 

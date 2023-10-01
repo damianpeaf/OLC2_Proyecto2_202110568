@@ -1,28 +1,24 @@
 package visitor
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
-	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
-type ValueWrapper struct {
-	Val      tac.SimpleValue
-	Metadata string
-}
-
 func (v *IrVisitor) VisitIntLiteral(ctx *compiler.IntLiteralContext) interface{} {
-	return &ValueWrapper{
+	return &value.ValueWrapper{
 		Val:      v.Factory.NewLiteral().SetValue(ctx.GetText()),
 		Metadata: abstract.IVOR_INT,
 	}
 }
 
 func (v *IrVisitor) VisitFloatLiteral(ctx *compiler.FloatLiteralContext) interface{} {
-	return &ValueWrapper{
+	return &value.ValueWrapper{
 		Val:      v.Factory.NewLiteral().SetValue(ctx.GetText()),
 		Metadata: abstract.IVOR_FLOAT,
 	}
@@ -40,12 +36,12 @@ func (v *IrVisitor) VisitStringLiteral(ctx *compiler.StringLiteralContext) inter
 	// Character literal
 	if len(stringVal) == 1 {
 		asciiVal := int(stringVal[0])
-		return &ValueWrapper{
+		return &value.ValueWrapper{
 			Val:      v.Factory.NewLiteral().SetValue(strconv.Itoa(asciiVal)),
 			Metadata: abstract.IVOR_CHARACTER,
 		}
 	}
-	return &ValueWrapper{
+	return &value.ValueWrapper{
 		Val:      v.Utility.SaveString(stringVal),
 		Metadata: abstract.IVOR_STRING,
 	}
@@ -53,19 +49,19 @@ func (v *IrVisitor) VisitStringLiteral(ctx *compiler.StringLiteralContext) inter
 
 func (v *IrVisitor) VisitBoolLiteral(ctx *compiler.BoolLiteralContext) interface{} {
 	if ctx.GetText() == "true" {
-		return &ValueWrapper{
+		return &value.ValueWrapper{
 			Val:      v.Factory.NewLiteral().SetValue("1"),
 			Metadata: abstract.IVOR_BOOL,
 		}
 	}
-	return &ValueWrapper{
+	return &value.ValueWrapper{
 		Val:      v.Factory.NewLiteral().SetValue("0"),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
 
 func (v *IrVisitor) VisitNilLiteral(ctx *compiler.NilLiteralContext) interface{} {
-	return &ValueWrapper{
+	return &value.ValueWrapper{
 		Val:      v.Utility.NilValue(),
 		Metadata: abstract.IVOR_NIL,
 	}
@@ -78,8 +74,8 @@ func (v *IrVisitor) VisitLiteralExp(ctx *compiler.LiteralExpContext) interface{}
 func (v *IrVisitor) VisitBinaryExp(ctx *compiler.BinaryExpContext) interface{} {
 
 	op := ctx.GetOp().GetText()
-	left := v.Visit(ctx.GetLeft()).(*ValueWrapper)
-	right := v.Visit(ctx.GetRight()).(*ValueWrapper)
+	left := v.Visit(ctx.GetLeft()).(*value.ValueWrapper)
+	right := v.Visit(ctx.GetRight()).(*value.ValueWrapper)
 
 	strat, ok := v.Strats[op]
 
@@ -90,8 +86,40 @@ func (v *IrVisitor) VisitBinaryExp(ctx *compiler.BinaryExpContext) interface{} {
 	ok, result := strat.Validate(left, right)
 
 	if !ok {
-		panic("Error on strat for " + op)
+		fmt.Println("Error: Invalid operation between", left.Metadata, "and", right.Metadata)
+		return &value.ValueWrapper{
+			Val:      v.Utility.NilValue(),
+			Metadata: abstract.IVOR_NIL,
+		}
 	}
 
 	return result
+}
+
+func (v *IrVisitor) VisitUnaryExp(ctx *compiler.UnaryExpContext) interface{} {
+
+	exp := v.Visit(ctx.Expr()).(*value.ValueWrapper)
+
+	strat, ok := v.UnStrats[ctx.GetOp().GetText()]
+
+	if !ok {
+		panic("Unary operator not found")
+	}
+
+	ok, result := strat.Validate(exp)
+
+	if !ok {
+		fmt.Println("Error: Invalid operation between", exp.Metadata)
+		return &value.ValueWrapper{
+			Val:      v.Utility.NilValue(),
+			Metadata: abstract.IVOR_NIL,
+		}
+	}
+
+	return result
+
+}
+
+func (v *IrVisitor) VisitParenExp(ctx *compiler.ParenExpContext) interface{} {
+	return v.Visit(ctx.Expr())
 }
