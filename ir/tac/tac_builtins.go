@@ -1,11 +1,18 @@
 package tac
 
+import (
+	"strconv"
+)
+
 func (f *TACFactory) reserveParams(name string) []*Temp {
 
 	switch name {
 	case "__concat":
 		return []*Temp{f.NewTemp(), f.NewTemp(), f.NewTemp()}
-
+	case "__print_str":
+		return []*Temp{f.NewTemp()}
+	case "__zero_division":
+		return []*Temp{f.NewTemp()}
 	}
 
 	return nil
@@ -115,5 +122,99 @@ func (f *TACFactory) ConcatBuiltIn() *MethodDcl {
 			assign12,
 			assign13,
 		},
+	}
+}
+
+func (f *TACFactory) PrintStrBuiltIn() *MethodDcl {
+
+	params := f.GetBuiltinParams("__print_str")
+
+	t1 := params[0]
+	t2 := f.NewTemp()
+
+	/*
+		t1 contains the address of the string
+		t2: aux temporal that will contain the char to print
+
+		print_str:
+			t2 = (int) heap[t1]
+			if(t2 == 0) goto end_print_str
+			print(t2)
+			t1 = t1 + 1
+			goto print_str
+		end_print_str:
+	*/
+
+	printStr := f.NewLabel()
+	endPrintStr := f.NewLabel()
+
+	assign1 := f.NewSimpleAssignment().SetAssignee(t2).SetVal(f.NewHeapIndexed().SetIndex(t1)) // t2 = (int) heap[t1]
+
+	condition := f.NewBoolExpression().SetLeft(t2).SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ) // if(t2 == 0)
+	conditional := f.NewConditionalJump().SetCondition(condition).SetTarget(endPrintStr)            // goto end_print_str
+
+	print := f.NewPrint().SetVal(t2).SetMode(PRINT_CHAR).SetCast("int")
+
+	assign2 := f.NewCompoundAssignment().SetAssignee(t1).SetLeft(t1).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS) // t1 = t1 + 1
+
+	assign3 := f.NewUnconditionalJump().SetTarget(printStr) // goto print_str
+
+	return &MethodDcl{
+		Name: "__print_str",
+		Block: []TACStmtI{
+			printStr,
+			assign1,
+			conditional,
+			print,
+			assign2,
+			assign3,
+			endPrintStr,
+		},
+	}
+}
+
+func (f *TACFactory) ZeroDivisionBuiltIn() *MethodDcl {
+
+	block := make(TACBlock, 0)
+	params := f.GetBuiltinParams("__zero_division")
+
+	t1 := params[0] // temporal that will contain the denominator
+
+	/*
+		if(t1 != 0) goto no_zero_division
+		print(...) MathError
+		t1 = 1 // error code
+		goto end_zero_division
+		no_zero_division:
+		t1 = 0
+		end_zero_division:
+	*/
+
+	noZeroDivision := f.NewLabel()
+	endZeroDivision := f.NewLabel()
+
+	condition := f.NewBoolExpression().SetLeft(t1).SetRight(f.NewLiteral().SetValue("0")).SetOp(NEQ).SetLeftCast("int") // if(t1 != 0)
+	conditional := f.NewConditionalJump().SetCondition(condition).SetTarget(noZeroDivision)                             // goto no_zero_division
+	block = append(block, conditional)
+
+	prints := f.Utility.PrintStringStream("MathError")
+	block = append(block, prints...)
+	block = append(block, f.NewPrint().SetMode(PRINT_CHAR).SetVal(f.NewLiteral().SetValue(strconv.Itoa('\n'))))
+
+	assign1 := f.NewSimpleAssignment().SetAssignee(t1).SetVal(f.NewLiteral().SetValue("1")) // t1 = 1
+	block = append(block, assign1)
+
+	assign2 := f.NewUnconditionalJump().SetTarget(endZeroDivision) // goto end_zero_division
+	block = append(block, assign2)
+
+	block = append(block, noZeroDivision)
+	assign3 := f.NewSimpleAssignment().SetAssignee(t1).SetVal(f.NewLiteral().SetValue("0")) // t1 = 0
+	block = append(block, assign3)
+
+	block = append(block, endZeroDivision)
+
+	return &MethodDcl{
+		Name:  "__zero_division",
+		Block: block,
 	}
 }

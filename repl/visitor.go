@@ -511,7 +511,7 @@ func (v *ReplVisitor) VisitVectorAssign(ctx *compiler.VectorAssignContext) inter
 
 		leftValue := itemRef.Value
 
-		// check type, todo: improve cast -> ¿? idk what i was thinking
+		// check type, improve cast -> ¿? idk what i was thinking
 		if rightValue.Type() != itemRef.Vector.ItemType {
 			v.ErrorTable.NewSemanticError(ctx.GetStart(), "No se puede asignar un valor de tipo "+rightValue.Type()+" a un vector de tipo "+itemRef.Vector.ItemType)
 			return nil
@@ -542,7 +542,7 @@ func (v *ReplVisitor) VisitVectorAssign(ctx *compiler.VectorAssignContext) inter
 	case *MatrixItemReference:
 		leftValue := itemRef.Value
 
-		// check type, todo: improve cast -> ¿? idk what i was thinking
+		// check type, improve cast -> ¿? idk what i was thinking
 		if rightValue.Type() != RemoveBrackets(itemRef.Matrix.Type()) {
 			v.ErrorTable.NewSemanticError(ctx.GetStart(), "No se puede asignar un valor de tipo "+rightValue.Type()+" a una matriz de tipo "+RemoveBrackets(itemRef.Matrix.Type()))
 			return nil

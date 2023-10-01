@@ -67,7 +67,7 @@ literal:
 expr:
 	LPAREN expr RPAREN									# ParenExp // (a) ✅
 	| func_call											# FuncCallExp // a.a.a()
-	| id_pattern										# IdExp // a.a.a
+	| id_pattern										# IdExp // a.a.a ✅
 	| vector_item										# VectorItemExp // a.a.a[0] 
 	| vector_prop										# VectorPropExp // a[0].a.a
 	| vector_func										# VectorFuncExp // a[0].a.a()
@@ -116,16 +116,16 @@ transfer_stmt:
 	| BREAK_KW		# BreakStmt
 	| CONTINUE_KW	# ContinueStmt;
 
-func_call: id_pattern LPAREN arg_list? RPAREN # FuncCall;
+func_call: id_pattern LPAREN arg_list? RPAREN # FuncCall; // ✅
 
 // external names -> num: value, num2: value2
-arg_list: func_arg (COMMA func_arg)* # ArgList;
-func_arg: (ID COLON)? (ANPERSAND)? (id_pattern | expr) # FuncArg; // 
+arg_list: func_arg (COMMA func_arg)* # ArgList; // ✅
+func_arg: (ID COLON)? (ANPERSAND)? (id_pattern | expr) # FuncArg; // ✅
 
 func_dcl:
 	FUNC_KW ID LPAREN param_list? RPAREN (ARROW type)? LBRACE stmt* RBRACE # FuncDecl;
 
-param_list: func_param (COMMA func_param)* # ParamList;
+param_list: func_param (COMMA func_param)* # ParamList; // ✅
 func_param: ID? ID COLON INOUT_KW? type # FuncParam;
 
 // * Structs

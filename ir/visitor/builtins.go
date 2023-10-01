@@ -25,10 +25,9 @@ func (v *IrVisitor) PrintBuiltin(args []*abstract.Argument) *value.ValueWrapper 
 		case abstract.IVOR_FLOAT:
 			v.Factory.AppendToBlock(v.Factory.NewPrint().SetMode(tac.PRINT_FLOAT).SetVal(arg.Wrapper.Val))
 		case abstract.IVOR_CHARACTER:
-			v.Factory.AppendToBlock(v.Factory.NewPrint().SetMode(tac.PRINT_CHAR).SetVal(arg.Wrapper.Val))
+			v.Factory.AppendToBlock(v.Factory.NewPrint().SetMode(tac.PRINT_CHAR).SetVal(arg.Wrapper.Val).SetCast("int"))
 		case abstract.IVOR_STRING:
-			// TODO: print string
-			return v.GetNilVW()
+			v.Utility.PrintString(arg.Wrapper.Val)
 		case abstract.IVOR_BOOL:
 			v.Factory.AppendToBlock(v.Factory.NewPrint().SetMode(tac.PRINT_DIGIT).SetVal(arg.Wrapper.Val))
 		case abstract.IVOR_NIL:

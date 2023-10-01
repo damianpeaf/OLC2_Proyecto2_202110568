@@ -123,3 +123,29 @@ func (v *IrVisitor) VisitUnaryExp(ctx *compiler.UnaryExpContext) interface{} {
 func (v *IrVisitor) VisitParenExp(ctx *compiler.ParenExpContext) interface{} {
 	return v.Visit(ctx.Expr())
 }
+
+func (v *IrVisitor) VisitIdExp(ctx *compiler.IdExpContext) interface{} {
+	varName := ctx.Id_pattern().GetText()
+
+	fmt.Println("ID EXP", varName)
+
+	variable := v.ScopeTrace.GetVariable(varName)
+
+	fmt.Println("ID EXP", variable)
+
+	if variable == nil {
+		return v.GetNilVW()
+	}
+
+	temp := v.Factory.NewTemp()
+	index := v.Factory.NewLiteral().SetValue(strconv.Itoa(variable.Address))
+	stackValue := v.Factory.NewStackIndexed().SetIndex(index)
+	assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackValue)
+	v.Factory.AppendToBlock(assign)
+
+	// ? pointer
+	return &value.ValueWrapper{
+		Val:      temp,
+		Metadata: variable.Type,
+	}
+}

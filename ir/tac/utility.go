@@ -21,9 +21,10 @@ func (u *Utility) SaveValOnStack(val SimpleValue) int {
 	// u.factory.AppendToBlock(u.factory.NewComment().SetComment("Saving value on stack"))
 	u.factory.AppendToBlock(assign)
 
+	address := u.factory.StackCurr
 	u.IncreaseStackPtr()
 
-	return u.factory.StackCurr
+	return address
 }
 
 func (u *Utility) IncreaseStackPtr() {
@@ -36,12 +37,36 @@ func (u *Utility) IncreaseStackPtr() {
 }
 
 func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator string) *Temp {
+
+	var endLabel *Label
+
+	// surround division with dynamic check
+	if operator == DIVIDE {
+		endLabel = u.factory.NewLabel()
+		params := u.factory.GetBuiltinParams("__zero_division")
+		param := params[0]
+		// assign param to denominator
+		assign := u.factory.NewSimpleAssignment().SetAssignee(param).SetVal(right)
+		u.factory.AppendToBlock(assign)
+		// call builtin
+		call := u.factory.NewMethodCall("__zero_division")
+		u.factory.AppendToBlock(call)
+		// if param is 1, then is an error
+
+		condition := u.factory.NewBoolExpression().SetLeft(param).SetRight(u.factory.NewLiteral().SetValue("1")).SetOp(EQ) // if(t2 == 0)
+		conditional := u.factory.NewConditionalJump().SetCondition(condition).SetTarget(endLabel)                          // goto end_print_str
+		u.factory.AppendToBlock(conditional)
+	}
+
 	temp := u.factory.NewTemp()
 	assign := u.factory.NewCompoundAssignment().SetAssignee(temp).SetLeft(left).SetRight(right).SetOperator(operator) // temp = left operator right
 
 	u.factory.AppendToBlock(u.factory.NewComment().SetComment("Arithmetic operation"))
 	u.factory.AppendToBlock(assign)
 
+	if operator == DIVIDE {
+		u.factory.AppendToBlock(endLabel)
+	}
 	return temp
 }
 
@@ -57,9 +82,10 @@ func (u *Utility) SaveValOnHeap(val SimpleValue) int {
 	// u.factory.AppendToBlock(u.factory.NewComment().SetComment("Saving value on heap"))
 	u.factory.AppendToBlock(assign)
 
+	address := u.factory.HeapCurr
 	u.IncreaseHeapPtr()
 
-	return u.factory.HeapCurr
+	return address
 }
 
 func (u *Utility) IncreaseHeapPtr() {
@@ -111,6 +137,18 @@ func (u *Utility) ConcatStrings(s1, s2 SimpleValue) *Temp {
 	return resultAddress
 }
 
+func (u *Utility) PrintString(s1 SimpleValue) {
+	params := u.factory.GetBuiltinParams("__print_str")
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(params[0]).SetVal(s1)
+	u.factory.AppendToBlock(assignS1)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__print_str")
+	u.factory.AppendToBlock(call)
+}
+
 func (u *Utility) ConcatCharStrings(s1, s2 SimpleValue, charFirst bool) *Temp {
 
 	u.factory.AppendToBlock(u.factory.NewComment().SetComment("---- converting char to string ----"))
@@ -139,6 +177,15 @@ func (u *Utility) PrintNil() {
 	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('n'))))
 	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('i'))))
 	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('l'))))
+}
+
+func (u *Utility) PrintStringStream(stream string) []TACStmtI {
+	block := []TACStmtI{}
+	for _, char := range stream {
+		printStmt := u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa(int(char))))
+		block = append(block, printStmt)
+	}
+	return block
 }
 
 func (u *Utility) PrintSpace() {

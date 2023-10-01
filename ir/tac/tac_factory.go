@@ -1,7 +1,6 @@
 package tac
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -107,8 +106,11 @@ func (f *TACFactory) NewComment() *Comment {
 func (f *TACFactory) registerBuiltins() {
 
 	if f.RegisteredBuiltins["__concat"] != nil {
-		fmt.Println("Builtin __concat already registered")
 		f.OutBlock = append(f.OutBlock, f.ConcatBuiltIn())
+	} else if f.RegisteredBuiltins["__print_str"] != nil {
+		f.OutBlock = append(f.OutBlock, f.PrintStrBuiltIn())
+	} else if f.RegisteredBuiltins["__zero_division"] != nil {
+		f.OutBlock = append(f.OutBlock, f.ZeroDivisionBuiltIn())
 	}
 
 }

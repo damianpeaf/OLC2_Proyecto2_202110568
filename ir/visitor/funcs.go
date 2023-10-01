@@ -1,7 +1,7 @@
 package visitor
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
@@ -22,7 +22,6 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 	if ctx.Arg_list() != nil {
 		args = v.Visit(ctx.Arg_list()).([]*abstract.Argument)
 	}
-	fmt.Print(args)
 
 	// struct has priority over func
 	// if structObj != nil {
@@ -63,18 +62,25 @@ func (v *IrVisitor) VisitFuncArg(ctx *compiler.FuncArgContext) interface{} {
 	passByReference := false
 
 	var argValue *value.ValueWrapper = v.GetNilVW()
-	// var argVariableRef *value.ValueWrapper = nil
+	var argVariableRef *abstract.IVOR = nil
 
 	if ctx.Id_pattern() != nil {
 		// Because is a reference to a variable, the treatment is a bit different
 		argName = ctx.Id_pattern().GetText()
-		// argVariableRef = v.ScopeTrace.GetVariable(argName)
+		argVariableRef = v.ScopeTrace.GetVariable(argName)
 
-		// if argVariableRef != nil {
-		// 	argValue = argVariableRef.Value
-		// } else {
-		// 	v.ErrorTable.NewSemanticError(ctx.GetStart(), "Variable "+argName+" no encontrada")
-		// }
+		if argVariableRef != nil {
+			temp := v.Factory.NewTemp()
+			index := v.Factory.NewLiteral().SetValue(strconv.Itoa(argVariableRef.Address))
+			stackValue := v.Factory.NewStackIndexed().SetIndex(index)
+			assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackValue)
+			v.Factory.AppendToBlock(assign)
+			argValue = &value.ValueWrapper{
+				Val:      temp,
+				Metadata: argVariableRef.Type,
+				// ? address
+			}
+		}
 	} else {
 		argValue = v.Visit(ctx.Expr()).(*value.ValueWrapper)
 	}

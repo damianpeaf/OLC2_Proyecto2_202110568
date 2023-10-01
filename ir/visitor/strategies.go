@@ -261,7 +261,6 @@ var divStrategy = BinaryStrategy{
 					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE),
 					Metadata: abstract.IVOR_INT,
 				}
-				// TODO: check division by zero
 				return true, rvw
 			},
 		},
@@ -275,7 +274,6 @@ var divStrategy = BinaryStrategy{
 					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE),
 					Metadata: abstract.IVOR_FLOAT,
 				}
-				// TODO: check division by zero
 				return true, rvw
 			},
 		},
@@ -291,7 +289,6 @@ var divStrategy = BinaryStrategy{
 					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE),
 					Metadata: abstract.IVOR_FLOAT,
 				}
-				// TODO: check division by zero
 				return true, rvw
 			},
 		},
@@ -314,7 +311,6 @@ var modStrategy = BinaryStrategy{
 					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MOD),
 					Metadata: abstract.IVOR_INT,
 				}
-				// TODO: check division by zero
 				return true, rvw
 			},
 		},

@@ -78,13 +78,27 @@ func (s *SimpleAssignment) SetAssignee(assignee SimpleValue) *SimpleAssignment {
 
 // ** BoolExpression
 type BoolExpression struct {
-	Operator string
-	Left     SimpleValue
-	Right    SimpleValue
+	Operator  string
+	Left      SimpleValue
+	Right     SimpleValue
+	leftCast  string
+	rightCast string
 }
 
 func (b *BoolExpression) String() string {
-	return b.Left.String() + " " + string(b.Operator) + " " + b.Right.String()
+
+	lcast := ""
+	rcast := ""
+
+	if b.leftCast != "" {
+		lcast = "(" + b.leftCast + ")"
+	}
+
+	if b.rightCast != "" {
+		rcast = "(" + b.rightCast + ")"
+	}
+
+	return lcast + " " + b.Left.String() + " " + string(b.Operator) + " " + rcast + " " + b.Right.String()
 }
 
 // builder utils
@@ -93,8 +107,18 @@ func (b *BoolExpression) SetLeft(left SimpleValue) *BoolExpression {
 	return b
 }
 
+func (b *BoolExpression) SetLeftCast(leftCast string) *BoolExpression {
+	b.leftCast = leftCast
+	return b
+}
+
 func (b *BoolExpression) SetRight(right SimpleValue) *BoolExpression {
 	b.Right = right
+	return b
+}
+
+func (b *BoolExpression) SetRightCast(rightCast string) *BoolExpression {
+	b.rightCast = rightCast
 	return b
 }
 
