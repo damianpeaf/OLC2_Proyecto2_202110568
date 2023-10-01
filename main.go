@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
@@ -14,6 +15,17 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
+
+func getPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = ":3000"
+	} else {
+		port = ":" + port
+	}
+
+	return port
+}
 
 func main() {
 
@@ -101,6 +113,6 @@ func main() {
 
 	})
 
-	app.Listen(":3000")
+	app.Listen(getPort())
 
 }

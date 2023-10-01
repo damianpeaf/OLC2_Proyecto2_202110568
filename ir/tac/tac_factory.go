@@ -107,9 +107,13 @@ func (f *TACFactory) registerBuiltins() {
 
 	if f.RegisteredBuiltins["__concat"] != nil {
 		f.OutBlock = append(f.OutBlock, f.ConcatBuiltIn())
-	} else if f.RegisteredBuiltins["__print_str"] != nil {
+	}
+
+	if f.RegisteredBuiltins["__print_str"] != nil {
 		f.OutBlock = append(f.OutBlock, f.PrintStrBuiltIn())
-	} else if f.RegisteredBuiltins["__zero_division"] != nil {
+	}
+
+	if f.RegisteredBuiltins["__zero_division"] != nil {
 		f.OutBlock = append(f.OutBlock, f.ZeroDivisionBuiltIn())
 	}
 
