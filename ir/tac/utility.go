@@ -41,7 +41,7 @@ func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator s
 	var endLabel *Label
 
 	// surround division with dynamic check
-	if operator == DIVIDE {
+	if operator == DIVIDE || operator == MOD {
 		endLabel = u.factory.NewLabel()
 		params := u.factory.GetBuiltinParams("__zero_division")
 		param := params[0]
@@ -64,7 +64,7 @@ func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator s
 	u.factory.AppendToBlock(u.factory.NewComment().SetComment("Arithmetic operation"))
 	u.factory.AppendToBlock(assign)
 
-	if operator == DIVIDE {
+	if operator == DIVIDE || operator == MOD {
 		u.factory.AppendToBlock(endLabel)
 	}
 	return temp
@@ -72,6 +72,86 @@ func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator s
 
 func (u *Utility) NilValue() *Literal {
 	return u.factory.NewLiteral().SetValue("9999999827968.00")
+}
+
+func (u *Utility) BoolOperation(left SimpleValue, right SimpleValue, operator, lcast, rcast string) *Temp {
+
+	temp := u.factory.NewTemp()
+
+	// condition for true
+	trueLabel := u.factory.NewLabel()
+	endLabel := u.factory.NewLabel()
+
+	condition := u.factory.NewBoolExpression().SetLeft(left).SetRight(right).SetOp(operator).SetLeftCast(lcast).SetRightCast(rcast) // left operator right
+	trueJump := u.factory.NewConditionalJump().SetCondition(condition).SetTarget(trueLabel)                                         // goto true
+	u.factory.AppendToBlock(trueJump)
+
+	// false
+	falseAssign := u.factory.NewSimpleAssignment().SetAssignee(temp).SetVal(u.factory.NewLiteral().SetValue("0")) // temp = 0
+	u.factory.AppendToBlock(falseAssign)
+
+	falseJump := u.factory.NewUnconditionalJump().SetTarget(endLabel) // goto end
+	u.factory.AppendToBlock(falseJump)
+
+	// true
+	u.factory.AppendToBlock(trueLabel)
+	trueAssign := u.factory.NewSimpleAssignment().SetAssignee(temp).SetVal(u.factory.NewLiteral().SetValue("1")) // temp = 1
+	u.factory.AppendToBlock(trueAssign)
+
+	// end
+	u.factory.AppendToBlock(endLabel)
+
+	return temp
+}
+
+func (u Utility) AndOperation(left, right SimpleValue) *Temp {
+
+	params := u.factory.GetBuiltinParams("__and")
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(params[0]).SetVal(left)
+	u.factory.AppendToBlock(assignS1)
+
+	assignS2 := u.factory.NewSimpleAssignment().SetAssignee(params[1]).SetVal(right)
+	u.factory.AppendToBlock(assignS2)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__and")
+	u.factory.AppendToBlock(call)
+
+	return params[2]
+}
+
+func (u Utility) OrOperation(left, right SimpleValue) *Temp {
+	params := u.factory.GetBuiltinParams("__or")
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(params[0]).SetVal(left)
+	u.factory.AppendToBlock(assignS1)
+
+	assignS2 := u.factory.NewSimpleAssignment().SetAssignee(params[1]).SetVal(right)
+	u.factory.AppendToBlock(assignS2)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__or")
+	u.factory.AppendToBlock(call)
+
+	return params[2]
+}
+
+func (u Utility) NotOperation(left SimpleValue) *Temp {
+
+	params := u.factory.GetBuiltinParams("__not")
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(params[0]).SetVal(left)
+	u.factory.AppendToBlock(assignS1)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__not")
+	u.factory.AppendToBlock(call)
+
+	return params[1]
 }
 
 func (u *Utility) SaveValOnHeap(val SimpleValue) int {
@@ -117,7 +197,7 @@ func (u *Utility) SaveString(stream string) *Temp {
 
 // Concats strings on heap and returns the temporal with the start address of the new string
 func (u *Utility) ConcatStrings(s1, s2 SimpleValue) *Temp {
-	params := u.factory.GetBuiltinParams("__concat")
+	params := u.factory.GetBuiltinParams("__concat_str")
 
 	firstAddress := params[0]
 	secondAddress := params[1]
@@ -131,10 +211,33 @@ func (u *Utility) ConcatStrings(s1, s2 SimpleValue) *Temp {
 	u.factory.AppendToBlock(assignS2)
 
 	// call builtin
-	call := u.factory.NewMethodCall("__concat")
+	call := u.factory.NewMethodCall("__concat_str")
 	u.factory.AppendToBlock(call)
 
 	return resultAddress
+}
+
+func (u *Utility) CompareStrings(s1, s2 SimpleValue, op string) *Temp {
+
+	params := u.factory.GetBuiltinParams("__compare_str")
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(params[0]).SetVal(s1)
+	u.factory.AppendToBlock(assignS1)
+
+	assignS2 := u.factory.NewSimpleAssignment().SetAssignee(params[1]).SetVal(s2)
+	u.factory.AppendToBlock(assignS2)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__compare_str")
+	u.factory.AppendToBlock(call)
+
+	// code:
+	// 0 -> s1 == s2
+	// -1 -> s1 < s2
+	// 1 -> s1 > s2
+
+	return u.BoolOperation(params[2], u.factory.NewLiteral().SetValue("0"), op, "int", "")
 }
 
 func (u *Utility) PrintString(s1 SimpleValue) {
@@ -171,6 +274,19 @@ func (u *Utility) ConcatCharStrings(s1, s2 SimpleValue, charFirst bool) *Temp {
 		return u.ConcatStrings(charHeapAddress, s2)
 	}
 	return u.ConcatStrings(s1, charHeapAddress)
+}
+
+func (u *Utility) PrintBool(val SimpleValue) {
+
+	params := u.factory.GetBuiltinParams("__print_bool")
+
+	// assign the address
+	assignS1 := u.factory.NewSimpleAssignment().SetAssignee(params[0]).SetVal(val)
+	u.factory.AppendToBlock(assignS1)
+
+	// call builtin
+	call := u.factory.NewMethodCall("__print_bool")
+	u.factory.AppendToBlock(call)
 }
 
 func (u *Utility) PrintNil() {

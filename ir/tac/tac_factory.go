@@ -105,7 +105,7 @@ func (f *TACFactory) NewComment() *Comment {
 
 func (f *TACFactory) registerBuiltins() {
 
-	if f.RegisteredBuiltins["__concat"] != nil {
+	if f.RegisteredBuiltins["__concat_str"] != nil {
 		f.OutBlock = append(f.OutBlock, f.ConcatBuiltIn())
 	}
 
@@ -113,8 +113,28 @@ func (f *TACFactory) registerBuiltins() {
 		f.OutBlock = append(f.OutBlock, f.PrintStrBuiltIn())
 	}
 
+	if f.RegisteredBuiltins["__print_bool"] != nil {
+		f.OutBlock = append(f.OutBlock, f.PrintBoolBuiltIn())
+	}
+
 	if f.RegisteredBuiltins["__zero_division"] != nil {
 		f.OutBlock = append(f.OutBlock, f.ZeroDivisionBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__compare_str"] != nil {
+		f.OutBlock = append(f.OutBlock, f.CompareStrBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__and"] != nil {
+		f.OutBlock = append(f.OutBlock, f.AndBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__or"] != nil {
+		f.OutBlock = append(f.OutBlock, f.OrBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__not"] != nil {
+		f.OutBlock = append(f.OutBlock, f.NotBuiltIn())
 	}
 
 }

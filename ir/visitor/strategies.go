@@ -369,7 +369,7 @@ func sameTypeStrat(name string, eval evalFunc) BinaryStrategy {
 
 var defaultEqValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.EQ),
+		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.EQ, "", ""),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
@@ -407,7 +407,7 @@ var eqStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.EQ), // TODO: char by char comparison
+					Val:      iv.Utility.CompareStrings(vw1.Val, vw2.Val, tac.EQ),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},
@@ -417,7 +417,7 @@ var eqStrategy = BinaryStrategy{
 
 var defaultNeqValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.NEQ),
+		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.NEQ, "", ""),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
@@ -455,7 +455,7 @@ var notEqStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.NEQ), // TODO: char by char comparison
+					Val:      iv.Utility.CompareStrings(vw1.Val, vw2.Val, tac.NEQ),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},
@@ -465,7 +465,7 @@ var notEqStrategy = BinaryStrategy{
 
 var defaultLessThanValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.LT),
+		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.LT, "", ""),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
@@ -495,7 +495,7 @@ var lessThanStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.LT), // TODO: char by char comparison
+					Val:      iv.Utility.CompareStrings(vw1.Val, vw2.Val, tac.LT),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},
@@ -512,7 +512,7 @@ var lessThanStrategy = BinaryStrategy{
 
 var defaultLessOrEqValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.LTE),
+		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.LTE, "", ""),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
@@ -543,7 +543,7 @@ var lessOrEqStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.LTE), // TODO: char by char comparison
+					Val:      iv.Utility.CompareStrings(vw1.Val, vw2.Val, tac.LTE),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},
@@ -560,7 +560,7 @@ var lessOrEqStrategy = BinaryStrategy{
 
 var defaultGreaterThanValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.GT),
+		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.GT, "", ""),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
@@ -591,7 +591,7 @@ var greaterThanStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.GT), // TODO: char by char comparison
+					Val:      iv.Utility.CompareStrings(vw1.Val, vw2.Val, tac.GT),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},
@@ -608,7 +608,7 @@ var greaterThanStrategy = BinaryStrategy{
 
 var defaultGreaterOrEqValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.GTE),
+		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.GTE, "", ""),
 		Metadata: abstract.IVOR_BOOL,
 	}
 }
@@ -639,7 +639,7 @@ var greaterOrEqStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.GTE), // TODO: char by char comparison
+					Val:      iv.Utility.CompareStrings(vw1.Val, vw2.Val, tac.GTE),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},
@@ -654,8 +654,6 @@ var greaterOrEqStrategy = BinaryStrategy{
 	},
 }
 
-// // * logical operators
-
 func genericBinaryLogicalStrat(name string, eval evalFunc) BinaryStrategy {
 
 	return BinaryStrategy{
@@ -669,6 +667,7 @@ func genericBinaryLogicalStrat(name string, eval evalFunc) BinaryStrategy {
 				LeftConversion:  nil,
 				RightConversion: nil,
 				Eval:            nil,
+				ReturnType:      abstract.IVOR_BOOL,
 			},
 		},
 	}
@@ -676,14 +675,14 @@ func genericBinaryLogicalStrat(name string, eval evalFunc) BinaryStrategy {
 
 var andStrategy = genericBinaryLogicalStrat("&&", func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.PLUS), // TODO: and built-in function
+		Val:      iv.Utility.AndOperation(vw1.Val, vw2.Val),
 		Metadata: abstract.IVOR_BOOL,
 	}
 })
 
 var orStrategy = genericBinaryLogicalStrat("||", func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
-		Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.PLUS), // TODO: or built-in function
+		Val:      iv.Utility.OrOperation(vw1.Val, vw2.Val),
 		Metadata: abstract.IVOR_BOOL,
 	}
 })
@@ -771,7 +770,7 @@ var notStrategy = UnaryStrategy{
 			Conversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, nil, tac.PLUS), // TODO: not built-in function
+					Val:      iv.Utility.NotOperation(vw1.Val),
 					Metadata: abstract.IVOR_BOOL,
 				}
 			},

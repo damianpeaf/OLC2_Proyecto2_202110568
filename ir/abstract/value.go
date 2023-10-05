@@ -1,5 +1,11 @@
 package abstract
 
+import (
+	"strconv"
+
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
+)
+
 const (
 	IVOR_INT              = "Int"
 	IVOR_FLOAT            = "Float"
@@ -24,4 +30,8 @@ type IVOR struct {
 	Type    string
 	Address int
 	// Copy() IVOR // ? it would be interesting
+}
+
+func (i *IVOR) GetStackStmt(f *tac.TACFactory) *tac.StackIndexedValue {
+	return f.NewStackIndexed().SetIndex(f.NewLiteral().SetValue(strconv.Itoa(i.Address)))
 }

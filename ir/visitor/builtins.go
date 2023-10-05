@@ -1,6 +1,8 @@
 package visitor
 
 import (
+	"fmt"
+
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
@@ -29,9 +31,13 @@ func (v *IrVisitor) PrintBuiltin(args []*abstract.Argument) *value.ValueWrapper 
 		case abstract.IVOR_STRING:
 			v.Utility.PrintString(arg.Wrapper.Val)
 		case abstract.IVOR_BOOL:
-			v.Factory.AppendToBlock(v.Factory.NewPrint().SetMode(tac.PRINT_DIGIT).SetVal(arg.Wrapper.Val))
+			v.Factory.Utility.PrintBool(arg.Wrapper.Val)
 		case abstract.IVOR_NIL:
 			v.Utility.PrintNil()
+		default:
+			fmt.Println("bool VAAAAAAAAL")
+			fmt.Println(arg.Wrapper.Metadata)
+			fmt.Println(arg.Wrapper.Val)
 		}
 		v.Utility.PrintSpace()
 	}
