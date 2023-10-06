@@ -36,7 +36,7 @@ func (u *Utility) IncreaseStackPtr() {
 	u.factory.StackCurr++
 }
 
-func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator string) *Temp {
+func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator, lcast, rcast string) *Temp {
 
 	var endLabel *Label
 
@@ -59,7 +59,7 @@ func (u *Utility) BasicOperation(left SimpleValue, right SimpleValue, operator s
 	}
 
 	temp := u.factory.NewTemp()
-	assign := u.factory.NewCompoundAssignment().SetAssignee(temp).SetLeft(left).SetRight(right).SetOperator(operator) // temp = left operator right
+	assign := u.factory.NewCompoundAssignment().SetAssignee(temp).SetLeft(left).SetRight(right).SetOperator(operator).SetLeftCast(lcast).SetRightCast(rcast) // temp = left operator right
 
 	u.factory.AppendToBlock(u.factory.NewComment().SetComment("Arithmetic operation"))
 	u.factory.AppendToBlock(assign)

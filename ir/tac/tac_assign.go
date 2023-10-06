@@ -24,13 +24,26 @@ type TACAssigment struct {
 // ** CompoundAssignment
 type CompoundAssignment struct {
 	TACAssigment
-	Left     SimpleValue
-	Right    SimpleValue
-	Operator string
+	Left      SimpleValue
+	Right     SimpleValue
+	LeftCast  string
+	RightCast string
+	Operator  string
 }
 
 func (c *CompoundAssignment) String() string {
-	return c.Assignee.String() + " = " + c.Left.String() + " " + string(c.Operator) + " " + c.Right.String() + ";"
+	lcast := ""
+	rcast := ""
+
+	if c.LeftCast != "" {
+		lcast = "(" + c.LeftCast + ")"
+	}
+
+	if c.RightCast != "" {
+		rcast = "(" + c.RightCast + ")"
+	}
+
+	return c.Assignee.String() + " = " + lcast + " " + c.Left.String() + " " + string(c.Operator) + " " + rcast + " " + c.Right.String() + ";"
 }
 
 // builder utils
@@ -51,6 +64,16 @@ func (c *CompoundAssignment) SetOperator(operator string) *CompoundAssignment {
 
 func (c *CompoundAssignment) SetAssignee(assignee SimpleValue) *CompoundAssignment {
 	c.Assignee = assignee
+	return c
+}
+
+func (c *CompoundAssignment) SetLeftCast(cast string) *CompoundAssignment {
+	c.LeftCast = cast
+	return c
+}
+
+func (c *CompoundAssignment) SetRightCast(cast string) *CompoundAssignment {
+	c.RightCast = cast
 	return c
 }
 

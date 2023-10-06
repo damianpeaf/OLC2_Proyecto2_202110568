@@ -84,7 +84,7 @@ var addStrategy = BinaryStrategy{
 	Viceversa: true,
 	DefaultEval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 		return true, &value.ValueWrapper{
-			Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.PLUS),
+			Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.PLUS, "", ""),
 			Metadata: "",
 		}
 	},
@@ -152,7 +152,7 @@ var subStrategy = BinaryStrategy{
 	Viceversa: true,
 	DefaultEval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 		return true, &value.ValueWrapper{
-			Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS),
+			Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS, "", ""),
 			Metadata: abstract.IVOR_INT,
 		}
 	},
@@ -164,7 +164,7 @@ var subStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS, "", ""),
 					Metadata: abstract.IVOR_INT,
 				}
 			},
@@ -176,7 +176,7 @@ var subStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS, "", ""),
 					Metadata: abstract.IVOR_FLOAT,
 				}
 			},
@@ -190,7 +190,7 @@ var subStrategy = BinaryStrategy{
 			},
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MINUS, "", ""),
 					Metadata: abstract.IVOR_FLOAT,
 				}
 			},
@@ -211,7 +211,7 @@ var mulStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MULTIPLY),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MULTIPLY, "", ""),
 					Metadata: abstract.IVOR_INT,
 				}
 			},
@@ -223,7 +223,7 @@ var mulStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MULTIPLY),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MULTIPLY, "", ""),
 					Metadata: abstract.IVOR_FLOAT,
 				}
 			},
@@ -237,7 +237,7 @@ var mulStrategy = BinaryStrategy{
 			},
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				return true, &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MULTIPLY),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MULTIPLY, "", ""),
 					Metadata: abstract.IVOR_FLOAT,
 				}
 			},
@@ -258,7 +258,7 @@ var divStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				rvw := &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE, "int", "int"),
 					Metadata: abstract.IVOR_INT,
 				}
 				return true, rvw
@@ -271,7 +271,7 @@ var divStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				rvw := &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE, "", ""),
 					Metadata: abstract.IVOR_FLOAT,
 				}
 				return true, rvw
@@ -286,7 +286,7 @@ var divStrategy = BinaryStrategy{
 			},
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				rvw := &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.DIVIDE, "", ""),
 					Metadata: abstract.IVOR_FLOAT,
 				}
 				return true, rvw
@@ -308,7 +308,7 @@ var modStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 				rvw := &value.ValueWrapper{
-					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MOD),
+					Val:      iv.Utility.BasicOperation(vw1.Val, vw2.Val, tac.MOD, "int", "int"),
 					Metadata: abstract.IVOR_INT,
 				}
 				return true, rvw
@@ -320,53 +320,6 @@ var modStrategy = BinaryStrategy{
 // * comparison operators
 
 // int == int; float == float; bool == bool; string == string; char == char
-func sameTypeStrat(name string, eval evalFunc) BinaryStrategy {
-	return BinaryStrategy{
-		Name:        name,
-		Viceversa:   true,
-		DefaultEval: eval,
-		Validations: []BinaryValidation{
-			{
-				LeftType:        abstract.IVOR_INT,
-				RightType:       abstract.IVOR_INT,
-				LeftConversion:  nil,
-				RightConversion: nil,
-				Eval:            nil,
-			},
-			{
-				LeftType:        abstract.IVOR_FLOAT,
-				RightType:       abstract.IVOR_FLOAT,
-				LeftConversion:  nil,
-				RightConversion: nil,
-				Eval:            nil,
-			},
-			{
-				LeftType:        abstract.IVOR_BOOL,
-				RightType:       abstract.IVOR_BOOL,
-				LeftConversion:  nil,
-				RightConversion: nil,
-				Eval:            nil,
-			},
-			{
-				LeftType:        abstract.IVOR_STRING,
-				RightType:       abstract.IVOR_STRING,
-				LeftConversion:  nil,
-				RightConversion: nil,
-				Eval:            nil,
-			},
-			{
-				LeftType:        abstract.IVOR_CHARACTER,
-				RightType:       abstract.IVOR_CHARACTER,
-				LeftConversion:  nil,
-				RightConversion: nil,
-				Eval:            nil,
-			},
-		},
-	}
-}
-
-// int == int; float == float; bool == bool; string == string; char == char
-
 var defaultEqValidation = func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 	return true, &value.ValueWrapper{
 		Val:      iv.Utility.BoolOperation(vw1.Val, vw2.Val, tac.EQ, "", ""),
@@ -783,7 +736,7 @@ var minusStrategy = UnaryStrategy{
 	Name: "-",
 	DefaultEval: func(iv *IrVisitor, vw1, vw2 *value.ValueWrapper) (bool, *value.ValueWrapper) {
 		return true, &value.ValueWrapper{
-			Val:      iv.Utility.BasicOperation(iv.Factory.NewLiteral().SetValue("0"), vw1.Val, tac.MINUS),
+			Val:      iv.Utility.BasicOperation(iv.Factory.NewLiteral().SetValue("0"), vw1.Val, tac.MINUS, "", ""),
 			Metadata: abstract.IVOR_INT,
 		}
 	},

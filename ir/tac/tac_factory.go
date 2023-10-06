@@ -7,24 +7,25 @@ import (
 type TACFactory struct {
 	LabelCount         int
 	TempCount          int
-	MainBlock          TACBlock
-	OutBlock           TACBlock // TODO
-	HeapCurr           int      // ?
-	StackCurr          int      // ?
+	MainBlock          *TACBlock
+	OutBlock           TACBlock
+	HeapCurr           int // ?
+	StackCurr          int // ?
 	Utility            *Utility
 	RegisteredBuiltins map[string][]*Temp
 }
 
 func NewTACFactory() *TACFactory {
-	return &TACFactory{0, 0, make(TACBlock, 0), make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp)}
+	mainBlock := make(TACBlock, 0)
+	return &TACFactory{0, 0, &mainBlock, make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp)}
 }
 
 func (f *TACFactory) AppendToBlock(stmt TACStmtI) {
-	f.MainBlock = append(f.MainBlock, stmt)
+	*f.MainBlock = append(*f.MainBlock, stmt)
 }
 
 func (f *TACFactory) AppendBlock(block TACBlock) {
-	f.MainBlock = append(f.MainBlock, block...)
+	*f.MainBlock = append(*f.MainBlock, block...)
 }
 
 func (f *TACFactory) NewLabel() *Label {
@@ -173,7 +174,7 @@ func (f *TACFactory) String() string {
 	header += temps
 
 	main_block := "int main() {\n"
-	for _, stmt := range f.MainBlock {
+	for _, stmt := range *f.MainBlock {
 		main_block += "\t" + stmt.String() + "\n"
 	}
 	main_block += "return 0;\n}\n"
