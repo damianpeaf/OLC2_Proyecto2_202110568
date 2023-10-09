@@ -75,7 +75,6 @@ func (v *IrVisitor) VisitIfStmt(ctx *compiler.IfStmtContext) interface{} {
 }
 
 func (v *IrVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
-	// TODO: new scope
 	previousBlock := v.Factory.MainBlock
 	conditionBlock := make(tac.TACBlock, 0)
 	v.Factory.MainBlock = &conditionBlock
@@ -85,6 +84,7 @@ func (v *IrVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
 	condition := v.Factory.NewBoolExpression().SetLeft(wrapper.Val).SetRight(v.Factory.NewLiteral().SetValue("1")).SetLeftCast("int").SetOp(tac.EQ)
 	conditionalJmp := v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(trueLabel)
 
+	v.ScopeTrace.PushScope("if")
 	innerBlock := make(tac.TACBlock, 0)
 	v.Factory.MainBlock = &innerBlock
 
@@ -92,6 +92,7 @@ func (v *IrVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
 		v.Visit(stmt)
 	}
 
+	v.ScopeTrace.PopScope()
 	v.Factory.MainBlock = previousBlock
 	return &ifStmt{
 		Condition:      conditionalJmp,
@@ -102,11 +103,11 @@ func (v *IrVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
 }
 
 func (v *IrVisitor) VisitElseStmt(ctx *compiler.ElseStmtContext) interface{} {
-	// TODO: new scope
 	prevBlock := v.Factory.MainBlock
 	auxBlock := make(tac.TACBlock, 0)
 	v.Factory.MainBlock = &auxBlock
 
+	v.ScopeTrace.PushScope("else")
 	for _, stmt := range ctx.AllStmt() {
 		v.Visit(stmt)
 	}
@@ -117,19 +118,74 @@ func (v *IrVisitor) VisitElseStmt(ctx *compiler.ElseStmtContext) interface{} {
 
 func (v *IrVisitor) VisitSwitchStmt(ctx *compiler.SwitchStmtContext) interface{} {
 
+	v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("switch"))
+	v.ScopeTrace.PushScope("switch")
+	wrapper := v.Visit(ctx.Expr()).(*value.ValueWrapper)
+
+	endLabel := v.Factory.NewLabel()
+	prevLabel := v.Transfer.BreakLabel
+	v.Transfer.BreakLabel = endLabel
+
+	for _, switchCase := range ctx.AllSwitch_case() {
+		v.TraverseCase(wrapper, switchCase)
+	}
+
+	if ctx.Default_case() != nil {
+		v.Visit(ctx.Default_case())
+	}
+
+	v.Factory.AppendToBlock(endLabel)
+	v.Transfer.BreakLabel = prevLabel
 	return nil
 }
 
-func (v *IrVisitor) GetCaseValue(tree antlr.ParseTree) *value.ValueWrapper {
-	return nil
-}
+func (v *IrVisitor) TraverseCase(wrapper *value.ValueWrapper, tree antlr.ParseTree) interface{} {
 
-func (v *IrVisitor) VisitSwitchCase(ctx *compiler.SwitchCaseContext) interface{} {
-	return nil
+	switch tree.(type) {
+	case *compiler.SwitchCaseContext:
+		// if expr != case; goto next case
+		// ... case
+		// goto end
+		// next case
+		// ...
+		// end:
+		v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("case"))
+
+		caseCtx := tree.(*compiler.SwitchCaseContext)
+		caseWrapper := v.Visit(caseCtx.Expr()).(*value.ValueWrapper)
+
+		nextCaseLabel := v.Factory.NewLabel()
+		strat := v.Strats["=="]
+
+		ok, result := strat.Validate(wrapper, caseWrapper)
+
+		if !ok {
+			fmt.Println("Error: Invalid operation between", wrapper.Metadata, "and", caseWrapper.Metadata)
+			return v.GetNilVW()
+		}
+
+		condition := v.Factory.NewBoolExpression().SetLeft(result.Val).SetLeftCast("int").SetRight(v.Factory.NewLiteral().SetValue("1")).SetOp(tac.NEQ)
+		conditionalJmp := v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(nextCaseLabel)
+		v.Factory.AppendToBlock(conditionalJmp)
+
+		for _, stmt := range caseCtx.AllStmt() {
+			v.Visit(stmt)
+		}
+
+		v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(v.Transfer.BreakLabel))
+		v.Factory.AppendToBlock(nextCaseLabel)
+		return nil
+	default:
+		return nil
+	}
 }
 
 func (v *IrVisitor) VisitDefaultCase(ctx *compiler.DefaultCaseContext) interface{} {
 
+	v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("default case"))
+	for _, stmt := range ctx.AllStmt() {
+		v.Visit(stmt)
+	}
 	return nil
 }
 

@@ -13,6 +13,13 @@ type IrVisitor struct {
 	Utility    *tac.Utility
 	Strats     map[string]BinaryStrategy
 	UnStrats   map[string]UnaryStrategy
+	Transfer   *TransferLabels
+}
+
+type TransferLabels struct {
+	ReturnLabel   *tac.Label
+	BreakLabel    *tac.Label
+	ContinueLabel *tac.Label
 }
 
 func NewIrVisitor() *IrVisitor {
@@ -21,10 +28,17 @@ func NewIrVisitor() *IrVisitor {
 	util := tac.NewUtility(factory)
 	factory.Utility = util
 
+	transfer := &TransferLabels{
+		ReturnLabel:   nil,
+		BreakLabel:    nil,
+		ContinueLabel: nil,
+	}
+
 	visitor := &IrVisitor{
 		Factory:    factory,
 		ScopeTrace: scopeTrace,
 		Utility:    util,
+		Transfer:   transfer,
 	}
 
 	strats := NewBinaryStrats(visitor)
