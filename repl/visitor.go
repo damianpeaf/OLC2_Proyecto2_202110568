@@ -926,7 +926,7 @@ func (v *ReplVisitor) VisitInnerWhile(ctx *compiler.WhileStmtContext, condition 
 	defer func() {
 
 		if item, ok := recover().(*CallStackItem); item != nil && ok {
-
+			v.ScopeTrace.CurrentScope = whileScope // reset scope to while scope
 			// Not a while item, propagate panic
 			if item != whileItem {
 				panic(item)
@@ -937,7 +937,6 @@ func (v *ReplVisitor) VisitInnerWhile(ctx *compiler.WhileStmtContext, condition 
 				item.ResetAction()                                       // reset action, can be used again
 				condition = v.Visit(ctx.Expr()).(value.IVOR)             // update condition
 				v.VisitInnerWhile(ctx, condition, whileScope, whileItem) // continue
-
 			} else if item.IsAction(BreakItem) {
 				// Break
 				return

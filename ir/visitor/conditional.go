@@ -188,7 +188,3 @@ func (v *IrVisitor) VisitDefaultCase(ctx *compiler.DefaultCaseContext) interface
 	}
 	return nil
 }
-
-func (v *IrVisitor) VisitWhileStmt(ctx *compiler.WhileStmtContext) interface{} {
-	return nil
-}
