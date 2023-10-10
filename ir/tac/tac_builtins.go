@@ -436,6 +436,10 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 		end_cmp_str:
 	*/
 
+	// temps
+	t1 := f.NewTemp()
+	t2 := f.NewTemp()
+
 	// labels:
 	cmpStr := f.NewLabel()
 	endOfStr1 := f.NewLabel()
@@ -448,30 +452,30 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 	block = append(block, cmpStr)
 
 	// t1 = (int) heap[s1]
-	assign1 := f.NewSimpleAssignment().SetAssignee(f.NewTemp()).SetVal(f.NewHeapIndexed().SetIndex(s1))
+	assign1 := f.NewSimpleAssignment().SetAssignee(t1).SetVal(f.NewHeapIndexed().SetIndex(s1))
 	block = append(block, assign1)
 
 	// t2 = (int) heap[s2]
-	assign2 := f.NewSimpleAssignment().SetAssignee(f.NewTemp()).SetVal(f.NewHeapIndexed().SetIndex(s2))
+	assign2 := f.NewSimpleAssignment().SetAssignee(t2).SetVal(f.NewHeapIndexed().SetIndex(s2))
 	block = append(block, assign2)
 
 	// if(t1 == 0) goto end_of_str_1
-	condition1 := f.NewBoolExpression().SetLeft(s1).SetLeftCast("int").SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
+	condition1 := f.NewBoolExpression().SetLeft(t1).SetLeftCast("int").SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
 	conditional1 := f.NewConditionalJump().SetCondition(condition1).SetTarget(endOfStr1)
 	block = append(block, conditional1)
 
 	// if(t2 == 0) goto s1_greater_than_s2
-	condition2 := f.NewBoolExpression().SetLeft(s2).SetLeftCast("int").SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
+	condition2 := f.NewBoolExpression().SetLeft(t2).SetLeftCast("int").SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
 	conditional2 := f.NewConditionalJump().SetCondition(condition2).SetTarget(s1GreaterThanS2)
 	block = append(block, conditional2)
 
 	// if(t1 < t2) goto s1_less_than_s2
-	condition3 := f.NewBoolExpression().SetLeft(s1).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(LT)
+	condition3 := f.NewBoolExpression().SetLeft(t1).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(LT)
 	conditional3 := f.NewConditionalJump().SetCondition(condition3).SetTarget(s1LessThanS2)
 	block = append(block, conditional3)
 
 	// if(t1 > t2) goto s1_greater_than_s2
-	condition4 := f.NewBoolExpression().SetLeft(s2).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(GT)
+	condition4 := f.NewBoolExpression().SetLeft(t2).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(GT)
 	conditional4 := f.NewConditionalJump().SetCondition(condition4).SetTarget(s1GreaterThanS2)
 	block = append(block, conditional4)
 
