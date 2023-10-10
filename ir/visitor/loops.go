@@ -48,10 +48,12 @@ func (v *IrVisitor) VisitWhileStmt(ctx *compiler.WhileStmtContext) interface{} {
 	conditional := v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(endLabel)
 	v.Factory.AppendToBlock(conditional)
 
+	v.ScopeTrace.PushScope("while")
 	for _, stmt := range ctx.AllStmt() {
 		v.Visit(stmt)
 	}
 
+	v.ScopeTrace.PopScope()
 	v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(startLabel))
 	v.Factory.AppendToBlock(endLabel)
 

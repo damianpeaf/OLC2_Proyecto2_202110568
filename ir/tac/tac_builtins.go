@@ -441,7 +441,6 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 	endOfStr1 := f.NewLabel()
 	s1GreaterThanS2 := f.NewLabel()
 	s1LessThanS2 := f.NewLabel()
-	nextChar := f.NewLabel()
 	equalStr := f.NewLabel()
 	endCmpStr := f.NewLabel()
 
@@ -457,27 +456,24 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 	block = append(block, assign2)
 
 	// if(t1 == 0) goto end_of_str_1
-	condition1 := f.NewBoolExpression().SetLeft(f.NewTemp()).SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
+	condition1 := f.NewBoolExpression().SetLeft(s1).SetLeftCast("int").SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
 	conditional1 := f.NewConditionalJump().SetCondition(condition1).SetTarget(endOfStr1)
 	block = append(block, conditional1)
 
 	// if(t2 == 0) goto s1_greater_than_s2
-	condition2 := f.NewBoolExpression().SetLeft(f.NewTemp()).SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
+	condition2 := f.NewBoolExpression().SetLeft(s2).SetLeftCast("int").SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
 	conditional2 := f.NewConditionalJump().SetCondition(condition2).SetTarget(s1GreaterThanS2)
 	block = append(block, conditional2)
 
 	// if(t1 < t2) goto s1_less_than_s2
-	condition3 := f.NewBoolExpression().SetLeft(f.NewTemp()).SetRight(f.NewTemp()).SetOp(LT)
+	condition3 := f.NewBoolExpression().SetLeft(s1).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(LT)
 	conditional3 := f.NewConditionalJump().SetCondition(condition3).SetTarget(s1LessThanS2)
 	block = append(block, conditional3)
 
 	// if(t1 > t2) goto s1_greater_than_s2
-	condition4 := f.NewBoolExpression().SetLeft(f.NewTemp()).SetRight(f.NewTemp()).SetOp(GT)
+	condition4 := f.NewBoolExpression().SetLeft(s2).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(GT)
 	conditional4 := f.NewConditionalJump().SetCondition(condition4).SetTarget(s1GreaterThanS2)
 	block = append(block, conditional4)
-
-	// next_char:
-	block = append(block, nextChar)
 
 	// s1 = s1 + 1
 	assign3 := f.NewCompoundAssignment().SetAssignee(s1).SetLeft(s1).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
@@ -516,9 +512,10 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 
 	// r = -1
 	assign6 := f.NewSimpleAssignment().SetAssignee(r).SetVal(f.NewLiteral().SetValue("-1"))
+	block = append(block, assign6)
 
 	// goto end_cmp_str
-	block = append(block, assign6)
+	block = append(block, f.NewUnconditionalJump().SetTarget(endCmpStr))
 
 	// s1_greater_than_s2:
 	block = append(block, s1GreaterThanS2)

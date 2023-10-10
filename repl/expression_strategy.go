@@ -160,7 +160,7 @@ var subStrategy = BinaryStrategy{
 			RightConversion: nil,
 			Eval: func(left, right value.IVOR) (bool, string, value.IVOR) {
 				return true, "", &value.IntValue{
-					InternalValue: left.(*value.IntValue).InternalValue * right.(*value.IntValue).InternalValue,
+					InternalValue: left.(*value.IntValue).InternalValue - right.(*value.IntValue).InternalValue,
 				}
 			},
 		},
