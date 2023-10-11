@@ -470,12 +470,12 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 	block = append(block, conditional2)
 
 	// if(t1 < t2) goto s1_less_than_s2
-	condition3 := f.NewBoolExpression().SetLeft(t1).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(LT)
+	condition3 := f.NewBoolExpression().SetLeft(t1).SetLeftCast("int").SetRight(t2).SetOp(LT).SetRightCast("int")
 	conditional3 := f.NewConditionalJump().SetCondition(condition3).SetTarget(s1LessThanS2)
 	block = append(block, conditional3)
 
 	// if(t1 > t2) goto s1_greater_than_s2
-	condition4 := f.NewBoolExpression().SetLeft(t2).SetLeftCast("int").SetRight(f.NewTemp()).SetOp(GT)
+	condition4 := f.NewBoolExpression().SetLeft(t1).SetLeftCast("int").SetRight(t2).SetOp(GT).SetRightCast("int")
 	conditional4 := f.NewConditionalJump().SetCondition(condition4).SetTarget(s1GreaterThanS2)
 	block = append(block, conditional4)
 
@@ -494,7 +494,7 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 	block = append(block, endOfStr1)
 
 	// if(t2 == 0) goto equal_str
-	condition5 := f.NewBoolExpression().SetLeft(f.NewTemp()).SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
+	condition5 := f.NewBoolExpression().SetLeft(t2).SetRight(f.NewLiteral().SetValue("0")).SetOp(EQ)
 	conditional5 := f.NewConditionalJump().SetCondition(condition5).SetTarget(equalStr)
 	block = append(block, conditional5)
 
