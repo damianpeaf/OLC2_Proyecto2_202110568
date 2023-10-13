@@ -24,7 +24,6 @@ type TransferLabels struct {
 
 func NewIrVisitor() *IrVisitor {
 	factory := tac.NewTACFactory()
-	scopeTrace := abstract.NewScopeTrace(factory)
 	util := tac.NewUtility(factory)
 	factory.Utility = util
 
@@ -36,7 +35,7 @@ func NewIrVisitor() *IrVisitor {
 
 	visitor := &IrVisitor{
 		Factory:    factory,
-		ScopeTrace: scopeTrace,
+		ScopeTrace: nil,
 		Utility:    util,
 		Transfer:   transfer,
 	}

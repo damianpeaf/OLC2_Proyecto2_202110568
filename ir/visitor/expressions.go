@@ -86,7 +86,7 @@ func (v *IrVisitor) VisitBinaryExp(ctx *compiler.BinaryExpContext) interface{} {
 	ok, result := strat.Validate(left, right)
 
 	if !ok {
-		fmt.Println("Error: Invalid operation between", left.Metadata, "and", right.Metadata)
+		fmt.Println("Error: Invalid operation between", left.Metadata, "and", right.Metadata, "binexp")
 		return &value.ValueWrapper{
 			Val:      v.Utility.NilValue(),
 			Metadata: abstract.IVOR_NIL,

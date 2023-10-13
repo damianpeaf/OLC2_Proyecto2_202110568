@@ -1,37 +1,32 @@
 package abstract
 
-import (
-	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
-)
+import "fmt"
 
 // ***** BASE SCOPE *****
 type BaseScope struct {
-	Name      string
-	Parent    *BaseScope
-	Children  []*BaseScope
-	Variables map[string]*IVOR
-	Factory   *tac.TACFactory
-	Functions map[string]*Function
-	// structs    map[string]*Struct
+	Name       string
+	Parent     *BaseScope
+	Children   []*BaseScope
+	Variables  map[string]*IVOR
+	Functions  map[string]*Function
+	ScopeTrace *ScopeTrace
+	innerOrder int // TODO: need to find a way to reset this for recursive functions
 }
 
 func (s *BaseScope) AddChild(child *BaseScope) {
 	s.Children = append(s.Children, child)
 	child.Parent = s
+
+	fmt.Printf("%s -> %s\n", s.Name, child.Name)
 }
 
-func (s *BaseScope) NewVariable(name string, val tac.SimpleValue, _type string) {
-	if val == nil {
-		return
-	}
-	s.Factory.AppendToBlock(s.Factory.NewComment().SetComment("Variable " + name + ": " + _type))
-	stackAddress := s.Factory.Utility.SaveValOnStack(val)
-
+func (s *BaseScope) NewVariable(name string, _type string) {
 	s.Variables[name] = &IVOR{
 		Name:    name,
 		Type:    _type,
-		Address: stackAddress,
+		Address: s.ScopeTrace.Correlative,
 	}
+	s.ScopeTrace.Correlative++
 }
 
 func (s *BaseScope) GetVariable(pattern string) *IVOR {
@@ -88,10 +83,10 @@ func (s *BaseScope) Reset() {
 type ScopeTrace struct {
 	GlobalScope  *BaseScope
 	CurrentScope *BaseScope
-	Factory      *tac.TACFactory
+	Correlative  int
 }
 
-func NewGlobalScope(factory *tac.TACFactory) *BaseScope {
+func NewGlobalScope(trace *ScopeTrace) *BaseScope {
 	// TODO: register built-in functions
 
 	initialFuncs := make(map[string]*Function)
@@ -101,44 +96,66 @@ func NewGlobalScope(factory *tac.TACFactory) *BaseScope {
 	}
 
 	return &BaseScope{
-		Name:      "global",
-		Variables: make(map[string]*IVOR),
-		Functions: initialFuncs,
-		Children:  make([]*BaseScope, 0),
-		Parent:    nil,
+		Name:       "global",
+		Variables:  make(map[string]*IVOR),
+		Functions:  initialFuncs,
+		Children:   make([]*BaseScope, 0),
+		Parent:     nil,
+		ScopeTrace: trace,
 	}
 }
 
-func NewLocalScope(name string, factory *tac.TACFactory) *BaseScope {
+func NewLocalScope(name string, trace *ScopeTrace) *BaseScope {
 	return &BaseScope{
-		Name:      name,
-		Variables: make(map[string]*IVOR),
-		Functions: make(map[string]*Function),
-		Children:  make([]*BaseScope, 0),
-		Parent:    nil,
-		Factory:   factory,
+		Name:       name,
+		Variables:  make(map[string]*IVOR),
+		Functions:  make(map[string]*Function),
+		Children:   make([]*BaseScope, 0),
+		Parent:     nil,
+		ScopeTrace: trace,
 	}
 }
 
 func (s *ScopeTrace) PushScope(name string) *BaseScope {
 
-	newScope := NewLocalScope(name, s.Factory)
+	newScope := NewLocalScope(name, s)
 	s.CurrentScope.AddChild(newScope)
 	s.CurrentScope = newScope
 
 	return s.CurrentScope
 }
 
+func (s *ScopeTrace) NextScope() *BaseScope {
+
+	if len(s.CurrentScope.Children) > 0 {
+		prevScope := s.CurrentScope
+		s.CurrentScope = s.CurrentScope.Children[s.CurrentScope.innerOrder]
+		prevScope.innerOrder++
+		return s.CurrentScope
+	}
+	return nil
+}
+
 func (s *ScopeTrace) PopScope() {
 	s.CurrentScope = s.CurrentScope.Parent
+}
+
+func (s *ScopeTrace) PrevScope() *BaseScope {
+
+	if s.CurrentScope.Parent != nil {
+
+		s.CurrentScope = s.CurrentScope.Parent
+		return s.CurrentScope
+	}
+	return nil
 }
 
 func (s *ScopeTrace) Reset() {
 	s.CurrentScope = s.GlobalScope
 }
 
-func (s *ScopeTrace) NewVariable(name string, val tac.SimpleValue, _type string) {
-	s.CurrentScope.NewVariable(name, val, _type)
+func (s *ScopeTrace) NewVariable(name string, _type string) {
+	s.CurrentScope.NewVariable(name, _type)
 }
 
 func (s *ScopeTrace) GetVariable(pattern string) *IVOR {
@@ -153,12 +170,14 @@ func (s *ScopeTrace) GetFunction(name string) *Function {
 	return s.CurrentScope.GetFunction(name)
 }
 
-func NewScopeTrace(factory *tac.TACFactory) *ScopeTrace {
-	globalScope := NewGlobalScope(factory)
-	globalScope.Factory = factory
-	return &ScopeTrace{
-		GlobalScope:  globalScope,
-		CurrentScope: globalScope,
-		Factory:      factory,
+func NewScopeTrace() *ScopeTrace {
+	trace := &ScopeTrace{
+		GlobalScope:  nil,
+		CurrentScope: nil,
+		Correlative:  0,
 	}
+	globalScope := NewGlobalScope(trace)
+	trace.GlobalScope = globalScope
+	trace.CurrentScope = globalScope
+	return trace
 }

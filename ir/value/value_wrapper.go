@@ -7,4 +7,5 @@ import (
 type ValueWrapper struct {
 	Val      tac.SimpleValue
 	Metadata string
+	Aux      interface{}
 }

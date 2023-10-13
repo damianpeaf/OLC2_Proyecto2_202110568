@@ -22,6 +22,11 @@ func (v *IrVisitor) Visit(tree antlr.ParseTree) interface{} {
 }
 
 func (v *IrVisitor) VisitProgram(ctx *compiler.ProgramContext) interface{} {
+	// main scope static analysis
+	frame := NewFrameVisitor()
+	mainScope := frame.VisitStmts(ctx.AllStmt())
+	v.ScopeTrace = mainScope
+	v.ReserveVariables()
 
 	for _, stmt := range ctx.AllStmt() {
 		v.Visit(stmt)
@@ -67,5 +72,14 @@ func (v *IrVisitor) GetNilVW() *value.ValueWrapper {
 	return &value.ValueWrapper{
 		Val:      v.Utility.NilValue(),
 		Metadata: abstract.IVOR_NIL,
+	}
+}
+
+// will take the current scope trace and dcl all the variables
+func (v *IrVisitor) ReserveVariables() {
+
+	v.Utility.Comment("Reserving variables")
+	for i := 0; i < v.ScopeTrace.Correlative; i++ {
+		v.Utility.SaveValOnStack(v.Factory.NewLiteral().SetValue("0"))
 	}
 }

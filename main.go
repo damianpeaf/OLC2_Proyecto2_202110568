@@ -86,7 +86,7 @@ func main() {
 		irVisitor.Visit(tree)
 		fmt.Println("IR generation finished")
 		irResult := irVisitor.Factory.String()
-		fmt.Println(irResult)
+		// fmt.Println(irResult)
 
 		// cstReport := <-resultChannel
 

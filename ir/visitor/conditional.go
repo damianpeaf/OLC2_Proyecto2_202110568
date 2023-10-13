@@ -84,7 +84,7 @@ func (v *IrVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
 	condition := v.Factory.NewBoolExpression().SetLeft(wrapper.Val).SetRight(v.Factory.NewLiteral().SetValue("1")).SetLeftCast("int").SetOp(tac.EQ)
 	conditionalJmp := v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(trueLabel)
 
-	v.ScopeTrace.PushScope("if")
+	v.ScopeTrace.NextScope()
 	innerBlock := make(tac.TACBlock, 0)
 	v.Factory.MainBlock = &innerBlock
 
@@ -92,7 +92,7 @@ func (v *IrVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
 		v.Visit(stmt)
 	}
 
-	v.ScopeTrace.PopScope()
+	v.ScopeTrace.PrevScope()
 	v.Factory.MainBlock = previousBlock
 	return &ifStmt{
 		Condition:      conditionalJmp,
@@ -107,7 +107,7 @@ func (v *IrVisitor) VisitElseStmt(ctx *compiler.ElseStmtContext) interface{} {
 	auxBlock := make(tac.TACBlock, 0)
 	v.Factory.MainBlock = &auxBlock
 
-	v.ScopeTrace.PushScope("else")
+	v.ScopeTrace.NextScope()
 	for _, stmt := range ctx.AllStmt() {
 		v.Visit(stmt)
 	}
@@ -119,7 +119,7 @@ func (v *IrVisitor) VisitElseStmt(ctx *compiler.ElseStmtContext) interface{} {
 func (v *IrVisitor) VisitSwitchStmt(ctx *compiler.SwitchStmtContext) interface{} {
 
 	v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("switch"))
-	v.ScopeTrace.PushScope("switch")
+	v.ScopeTrace.NextScope()
 	wrapper := v.Visit(ctx.Expr()).(*value.ValueWrapper)
 
 	endLabel := v.Factory.NewLabel()
@@ -181,10 +181,33 @@ func (v *IrVisitor) TraverseCase(wrapper *value.ValueWrapper, tree antlr.ParseTr
 }
 
 func (v *IrVisitor) VisitDefaultCase(ctx *compiler.DefaultCaseContext) interface{} {
-
 	v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("default case"))
 	for _, stmt := range ctx.AllStmt() {
 		v.Visit(stmt)
 	}
+	return nil
+}
+
+func (v *IrVisitor) VisitGuardStmt(ctx *compiler.GuardStmtContext) interface{} {
+	/*
+		if(expr == 1) goto end
+		... block
+		end:
+	*/
+
+	wrapper := v.Visit(ctx.Expr()).(*value.ValueWrapper)
+	endLabel := v.Factory.NewLabel()
+
+	condition := v.Factory.NewBoolExpression().SetLeft(wrapper.Val).SetLeftCast("int").SetRight(v.Factory.NewLiteral().SetValue("1")).SetOp(tac.EQ)
+	conditionalJmp := v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(endLabel)
+	v.Factory.AppendToBlock(conditionalJmp)
+
+	v.ScopeTrace.NextScope()
+	for _, stmt := range ctx.AllStmt() {
+		v.Visit(stmt)
+	}
+
+	v.ScopeTrace.PrevScope()
+	v.Factory.AppendToBlock(endLabel)
 	return nil
 }

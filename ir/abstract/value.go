@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
 const (
@@ -22,6 +23,7 @@ const (
 	IVOR_MATRIX           = "matrix"
 	IVOR_SELF             = "self"
 	IVOR_UNINITIALIZED    = "uninitialized"
+	IVOR_RANGE            = "range"
 )
 
 // IVOR stands for Internal Value Object Representation
@@ -34,4 +36,9 @@ type IVOR struct {
 
 func (i *IVOR) GetStackStmt(f *tac.TACFactory) *tac.StackIndexedValue {
 	return f.NewStackIndexed().SetIndex(f.NewLiteral().SetValue(strconv.Itoa(i.Address)))
+}
+
+type Range struct {
+	Init *value.ValueWrapper
+	End  *value.ValueWrapper
 }

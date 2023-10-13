@@ -311,3 +311,7 @@ func (u *Utility) PrintSpace() {
 func (u *Utility) PrintNewLine() {
 	u.factory.AppendToBlock(u.factory.NewPrint().SetMode(PRINT_CHAR).SetVal(u.factory.NewLiteral().SetValue(strconv.Itoa('\n'))))
 }
+
+func (u *Utility) Comment(comment string) {
+	u.factory.AppendToBlock(u.factory.NewComment().SetComment(comment))
+}
