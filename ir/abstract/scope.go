@@ -127,7 +127,17 @@ func (s *ScopeTrace) PushScope(name string) *BaseScope {
 
 func (s *ScopeTrace) NextScope() *BaseScope {
 
+	fmt.Println("NEXT SCOPE _1", s.CurrentScope.Name)
+
 	if len(s.CurrentScope.Children) > 0 {
+
+		if s.CurrentScope.innerOrder >= len(s.CurrentScope.Children) {
+			fmt.Println(s.CurrentScope.Name, "has no more children")
+		}
+
+		fmt.Println("NEXT SCOPE _2", s.CurrentScope.Children[s.CurrentScope.innerOrder].Name)
+		fmt.Println("")
+
 		prevScope := s.CurrentScope
 		s.CurrentScope = s.CurrentScope.Children[s.CurrentScope.innerOrder]
 		prevScope.innerOrder++
@@ -142,7 +152,12 @@ func (s *ScopeTrace) PopScope() {
 
 func (s *ScopeTrace) PrevScope() *BaseScope {
 
+	fmt.Println("PREV SCOPE _1", s.CurrentScope.Name)
+
 	if s.CurrentScope.Parent != nil {
+
+		fmt.Println("PREV SCOPE _2", s.CurrentScope.Parent.Name)
+		fmt.Println("")
 
 		s.CurrentScope = s.CurrentScope.Parent
 		return s.CurrentScope

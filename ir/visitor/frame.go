@@ -122,9 +122,11 @@ func (v *FrameVisitor) VisitIfChain(ctx *compiler.IfChainContext) interface{} {
 }
 
 func (v *FrameVisitor) VisitElseStmt(ctx *compiler.ElseStmtContext) interface{} {
+	v.ScopeTrace.PushScope("else")
 	for _, child := range ctx.AllStmt() {
 		v.Visit(child)
 	}
+	v.ScopeTrace.PopScope()
 	return nil
 }
 

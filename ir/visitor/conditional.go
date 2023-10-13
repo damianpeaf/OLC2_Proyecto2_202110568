@@ -51,7 +51,6 @@ func (v *IrVisitor) VisitIfStmt(ctx *compiler.IfStmtContext) interface{} {
 		v.Factory.AppendToBlock(stmt.TrueLabel)
 
 		// add block
-		fmt.Println("adding block", stmt.InnerBlock)
 		v.Factory.AppendBlock(stmt.InnerBlock)
 
 		// add jmp to final label
@@ -113,6 +112,7 @@ func (v *IrVisitor) VisitElseStmt(ctx *compiler.ElseStmtContext) interface{} {
 	}
 
 	v.Factory.MainBlock = prevBlock
+	v.ScopeTrace.PrevScope()
 	return auxBlock
 }
 

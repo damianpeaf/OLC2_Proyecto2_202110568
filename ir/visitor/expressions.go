@@ -127,11 +127,7 @@ func (v *IrVisitor) VisitParenExp(ctx *compiler.ParenExpContext) interface{} {
 func (v *IrVisitor) VisitIdExp(ctx *compiler.IdExpContext) interface{} {
 	varName := ctx.Id_pattern().GetText()
 
-	fmt.Println("ID EXP", varName)
-
 	variable := v.ScopeTrace.GetVariable(varName)
-
-	fmt.Println("ID EXP", variable)
 
 	if variable == nil {
 		return v.GetNilVW()
