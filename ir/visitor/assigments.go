@@ -36,7 +36,7 @@ func (v *IrVisitor) VisitValueDecl(ctx *compiler.ValueDeclContext) interface{} {
 
 func (v *IrVisitor) VisitTypeDecl(ctx *compiler.TypeDeclContext) interface{} {
 	// Just set the type
-	varType := v.Visit(ctx.Type_()).(string)
+	varType := ctx.Type_().GetText()
 	variable := v.ScopeTrace.GetVariable(ctx.ID().GetText())
 	variable.Type = varType
 	return nil

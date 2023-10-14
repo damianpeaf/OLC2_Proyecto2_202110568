@@ -96,7 +96,7 @@ func (v *FrameVisitor) VisitValueDecl(ctx *compiler.ValueDeclContext) interface{
 func (v *FrameVisitor) VisitTypeDecl(ctx *compiler.TypeDeclContext) interface{} {
 
 	varName := ctx.ID().GetText()
-	varType := v.Visit(ctx.Type_()).(string)
+	varType := ctx.Type_().GetText()
 
 	v.ScopeTrace.CurrentScope.NewVariable(varName, varType)
 	return nil
