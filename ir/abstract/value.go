@@ -1,6 +1,7 @@
 package abstract
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
@@ -28,14 +29,28 @@ const (
 
 // IVOR stands for Internal Value Object Representation
 type IVOR struct {
-	Name    string
-	Type    string
-	Address int
+	Name          string
+	Type          string
+	Address       int
+	FrameRelative bool
+	Offset        int
 	// Copy() IVOR // ? it would be interesting
 }
 
 func (i *IVOR) GetStackStmt(f *tac.TACFactory) *tac.StackIndexedValue {
-	return f.NewStackIndexed().SetIndex(f.NewLiteral().SetValue(strconv.Itoa(i.Address)))
+	var index tac.SimpleValue = f.NewLiteral().SetValue(strconv.Itoa(i.Address))
+
+	fmt.Println("IVOR: ", i.Name, i.Type, i.Address, i.FrameRelative, i.Offset)
+
+	if i.FrameRelative {
+		// ? This could be reserved in some way
+		// framePointer + (address + offset) -> stack address
+		index = f.NewTemp()
+		addressComputation := f.NewCompoundAssignment().SetAssignee(index).SetLeft(f.GetFramePointer()).SetRight(f.NewLiteral().SetValue(strconv.Itoa(i.Address + i.Offset))).SetLeftCast("int").SetRightCast("int").SetOperator("+")
+		f.AppendToBlock(addressComputation)
+	}
+
+	return f.NewStackIndexed().SetIndex(index)
 }
 
 type Range struct {

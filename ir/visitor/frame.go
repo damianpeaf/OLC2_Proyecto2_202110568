@@ -29,9 +29,9 @@ type FrameVisitor struct {
 	ScopeTrace *abstract.ScopeTrace
 }
 
-func NewFrameVisitor() *FrameVisitor {
+func NewFrameVisitor(frameRelative bool, paramOffset int) *FrameVisitor {
 	return &FrameVisitor{
-		ScopeTrace: abstract.NewScopeTrace(),
+		ScopeTrace: abstract.NewScopeTrace(frameRelative, paramOffset),
 	}
 }
 

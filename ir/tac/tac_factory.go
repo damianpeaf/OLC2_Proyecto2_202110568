@@ -13,11 +13,12 @@ type TACFactory struct {
 	StackCurr          int // ?
 	Utility            *Utility
 	RegisteredBuiltins map[string][]*Temp
+	_framePointer      *Temp
 }
 
 func NewTACFactory() *TACFactory {
 	mainBlock := make(TACBlock, 0)
-	return &TACFactory{0, 0, &mainBlock, make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp)}
+	return &TACFactory{0, 0, &mainBlock, make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp), nil}
 }
 
 func (f *TACFactory) AppendToBlock(stmt TACStmtI) {
@@ -44,9 +45,9 @@ func (f *TACFactory) NewTemp() *Temp {
 	return temp
 }
 
-func (f *TACFactory) NewMethodDcl() *MethodDcl {
+func (f *TACFactory) NewMethodDcl(block TACBlock) *MethodDcl { // ? Maybe we should use a pointer to block
 	return &MethodDcl{
-		Block: make(TACBlock, 0),
+		Block: block,
 	}
 }
 
@@ -149,6 +150,13 @@ func (s *TACFactory) GetBuiltinParams(name string) []*Temp {
 	}
 
 	return params
+}
+
+func (s *TACFactory) GetFramePointer() *Temp {
+	if s._framePointer == nil {
+		s._framePointer = s.NewTemp()
+	}
+	return s._framePointer
 }
 
 func (f *TACFactory) String() string {

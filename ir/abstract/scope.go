@@ -21,12 +21,24 @@ func (s *BaseScope) AddChild(child *BaseScope) {
 }
 
 func (s *BaseScope) NewVariable(name string, _type string) {
+
+	offset := 0
+	if s.ScopeTrace.FrameRelative {
+		offset = s.ScopeTrace.ParamOffset + 1 // headers + params
+	}
+
 	s.Variables[name] = &IVOR{
-		Name:    name,
-		Type:    _type,
-		Address: s.ScopeTrace.Correlative,
+		Name:          name,
+		Type:          _type,
+		Address:       s.ScopeTrace.Correlative,
+		FrameRelative: s.ScopeTrace.FrameRelative,
+		Offset:        offset,
 	}
 	s.ScopeTrace.Correlative++
+}
+
+func (s *BaseScope) DirectVariable(variable *IVOR) {
+	s.Variables[variable.Name] = variable
 }
 
 func (s *BaseScope) GetVariable(pattern string) *IVOR {
@@ -44,16 +56,9 @@ func (s *BaseScope) GetVariable(pattern string) *IVOR {
 
 // TODO: searchObjectVariable
 
-func (s *BaseScope) NewFunction(name string, params []*Param) *Function {
-
-	createdFunc := &Function{
-		Name:  name,
-		Param: params,
-	}
-
-	s.Functions[name] = createdFunc
-
-	return createdFunc
+func (s *BaseScope) NewFunction(name string, f *Function) *Function {
+	s.Functions[name] = f
+	return f
 }
 
 func (s *BaseScope) GetFunction(name string) *Function {
@@ -81,9 +86,11 @@ func (s *BaseScope) Reset() {
 
 // ***** SCOPE TRACE *****
 type ScopeTrace struct {
-	GlobalScope  *BaseScope
-	CurrentScope *BaseScope
-	Correlative  int
+	GlobalScope   *BaseScope
+	CurrentScope  *BaseScope
+	Correlative   int
+	FrameRelative bool
+	ParamOffset   int
 }
 
 func NewGlobalScope(trace *ScopeTrace) *BaseScope {
@@ -177,19 +184,21 @@ func (s *ScopeTrace) GetVariable(pattern string) *IVOR {
 	return s.CurrentScope.GetVariable(pattern)
 }
 
-func (s *ScopeTrace) NewFunction(name string, params []*Param) *Function {
-	return s.CurrentScope.NewFunction(name, params)
+func (s *ScopeTrace) NewFunction(name string, f *Function) *Function {
+	return s.CurrentScope.NewFunction(name, f)
 }
 
 func (s *ScopeTrace) GetFunction(name string) *Function {
 	return s.CurrentScope.GetFunction(name)
 }
 
-func NewScopeTrace() *ScopeTrace {
+func NewScopeTrace(frameRelative bool, paramOffset int) *ScopeTrace {
 	trace := &ScopeTrace{
-		GlobalScope:  nil,
-		CurrentScope: nil,
-		Correlative:  0,
+		GlobalScope:   nil,
+		CurrentScope:  nil,
+		Correlative:   0,
+		FrameRelative: frameRelative,
+		ParamOffset:   paramOffset,
 	}
 	globalScope := NewGlobalScope(trace)
 	trace.GlobalScope = globalScope

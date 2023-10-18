@@ -1,10 +1,9 @@
 package visitor
 
 import (
-	"strconv"
-
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
@@ -71,9 +70,8 @@ func (v *IrVisitor) VisitFuncArg(ctx *compiler.FuncArgContext) interface{} {
 
 		if argVariableRef != nil {
 			temp := v.Factory.NewTemp()
-			index := v.Factory.NewLiteral().SetValue(strconv.Itoa(argVariableRef.Address))
-			stackValue := v.Factory.NewStackIndexed().SetIndex(index)
-			assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackValue)
+			stackAddress := argVariableRef.GetStackStmt(v.Factory)
+			assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackAddress)
 			v.Factory.AppendToBlock(assign)
 			argValue = &value.ValueWrapper{
 				Val:      temp,
@@ -103,6 +101,41 @@ func (v *IrVisitor) VisitFuncArg(ctx *compiler.FuncArgContext) interface{} {
 }
 
 // * FUNC DCL
+
+func (v *IrVisitor) VisitFuncParam(ctx *compiler.FuncParamContext) interface{} {
+
+	externName := ""
+	innerName := ""
+
+	// at least ID(0) is defined
+	// only 1 ID defined
+	if ctx.ID(1) == nil {
+		// innerName : type
+		// _ : type
+		innerName = ctx.ID(0).GetText()
+	} else {
+		// externName innerName : type
+		externName = ctx.ID(0).GetText()
+		innerName = ctx.ID(1).GetText()
+	}
+
+	passByReference := false
+
+	if ctx.INOUT_KW() != nil {
+		passByReference = true
+	}
+
+	paramType := v.Visit(ctx.Type_()).(string)
+
+	return &abstract.Param{
+		ExternName:      externName,
+		InnerName:       innerName,
+		PassByReference: passByReference,
+		Type:            paramType,
+	}
+
+}
+
 func (v *IrVisitor) VisitParamList(ctx *compiler.ParamListContext) interface{} {
 
 	params := make([]*abstract.Param, 0)
@@ -112,4 +145,87 @@ func (v *IrVisitor) VisitParamList(ctx *compiler.ParamListContext) interface{} {
 	}
 
 	return params
+}
+
+func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
+
+	if v.ScopeTrace.CurrentScope != v.ScopeTrace.GlobalScope {
+		// aready declared by dcl_visitor
+		return nil
+	}
+
+	funcName := ctx.ID().GetText()
+
+	params := make([]*abstract.Param, 0)
+
+	if ctx.Param_list() != nil {
+		params = v.Visit(ctx.Param_list()).([]*abstract.Param)
+	}
+
+	returnType := abstract.IVOR_NIL
+
+	if ctx.Type_() != nil {
+		returnType = v.Visit(ctx.Type_()).(string)
+	}
+
+	frameVisitor := NewFrameVisitor(true, len(params))
+	staticScopeTrace := frameVisitor.VisitStmts(ctx.AllStmt())
+	prevScope := v.ScopeTrace.CurrentScope
+
+	// link scopes
+	v.ScopeTrace.GlobalScope.AddChild(staticScopeTrace.GlobalScope)
+	v.ScopeTrace.CurrentScope = staticScopeTrace.GlobalScope
+	returnTemp := v.Factory.NewTemp()
+
+	function := &abstract.Function{ // pointer ?
+		Name:       funcName,
+		Params:     params,
+		ReturnType: returnType,
+		ScopeTrace: staticScopeTrace,
+		Type:       abstract.USER_DEFINED_FUNCTION,
+		ReturnTemp: returnTemp,
+	}
+
+	v.ScopeTrace.NewFunction(funcName, function)
+
+	// Al the content will be added to the function block
+	funcBlock := make(tac.TACBlock, 0)
+	prevBlock := v.Factory.MainBlock
+	v.Factory.MainBlock = &funcBlock
+
+	returnLabel := v.Factory.NewLabel()
+
+	v.Transfer.Return = &TransferReturn{
+		ReturnTemp:  returnTemp,
+		ReturnType:  returnType,
+		ReturnLabel: returnLabel,
+	}
+
+	// add params to scope
+	for i, param := range params {
+		paramVar := &abstract.IVOR{
+			Name:          param.InnerName,
+			Type:          param.Type,
+			Address:       i,
+			FrameRelative: true,
+			Offset:        1, // just skip the header
+		}
+		staticScopeTrace.GlobalScope.DirectVariable(paramVar)
+	}
+
+	for _, stmt := range ctx.AllStmt() {
+		v.Visit(stmt)
+	}
+
+	// add return label
+	v.Factory.AppendToBlock(returnLabel)
+	// TODO: assign return value to return temp
+
+	// now we have to add the func tac obj to outer block
+	tacFunc := v.Factory.NewMethodDcl(funcBlock).SetName(funcName)
+	v.Factory.OutBlock = append(v.Factory.OutBlock, tacFunc)
+
+	v.Factory.MainBlock = prevBlock
+	v.ScopeTrace.CurrentScope = prevScope
+	return nil
 }

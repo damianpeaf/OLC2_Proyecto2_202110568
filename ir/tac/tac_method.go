@@ -8,6 +8,7 @@ type MethodDcl struct {
 
 func (m *MethodDcl) String() string {
 	blockStr := ""
+
 	for _, stmt := range m.Block {
 		blockStr += "\t" + stmt.String() + "\n"
 	}

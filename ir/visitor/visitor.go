@@ -17,9 +17,15 @@ type IrVisitor struct {
 }
 
 type TransferLabels struct {
-	ReturnLabel   *tac.Label
+	Return        *TransferReturn
 	BreakLabel    *tac.Label
 	ContinueLabel *tac.Label
+}
+
+type TransferReturn struct {
+	ReturnTemp  *tac.Temp
+	ReturnType  string
+	ReturnLabel *tac.Label
 }
 
 func NewIrVisitor() *IrVisitor {
@@ -28,7 +34,7 @@ func NewIrVisitor() *IrVisitor {
 	factory.Utility = util
 
 	transfer := &TransferLabels{
-		ReturnLabel:   nil,
+		Return:        nil,
 		BreakLabel:    nil,
 		ContinueLabel: nil,
 	}

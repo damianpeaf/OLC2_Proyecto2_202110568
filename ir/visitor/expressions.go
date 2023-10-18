@@ -133,10 +133,11 @@ func (v *IrVisitor) VisitIdExp(ctx *compiler.IdExpContext) interface{} {
 		return v.GetNilVW()
 	}
 
+	fmt.Println("IDEXP: ", variable.Name, variable.Type, variable.Address, variable.FrameRelative, variable.Offset)
+
 	temp := v.Factory.NewTemp()
-	index := v.Factory.NewLiteral().SetValue(strconv.Itoa(variable.Address))
-	stackValue := v.Factory.NewStackIndexed().SetIndex(index)
-	assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackValue)
+	stackAddress := variable.GetStackStmt(v.Factory)
+	assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackAddress)
 	v.Factory.AppendToBlock(assign)
 
 	// ? pointer

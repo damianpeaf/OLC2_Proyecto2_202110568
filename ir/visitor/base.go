@@ -23,7 +23,7 @@ func (v *IrVisitor) Visit(tree antlr.ParseTree) interface{} {
 
 func (v *IrVisitor) VisitProgram(ctx *compiler.ProgramContext) interface{} {
 	// main scope static analysis
-	frame := NewFrameVisitor()
+	frame := NewFrameVisitor(false, 0)
 	mainScope := frame.VisitStmts(ctx.AllStmt())
 	v.ScopeTrace = mainScope
 	v.ReserveVariables()
