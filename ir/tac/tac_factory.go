@@ -9,8 +9,9 @@ type TACFactory struct {
 	TempCount          int
 	MainBlock          *TACBlock
 	OutBlock           TACBlock
-	HeapCurr           int // ?
-	StackCurr          int // ?
+	UserBlock          TACBlock // ?
+	HeapCurr           int      // ?
+	StackCurr          int      // ?
 	Utility            *Utility
 	RegisteredBuiltins map[string][]*Temp
 	_framePointer      *Temp
@@ -18,7 +19,7 @@ type TACFactory struct {
 
 func NewTACFactory() *TACFactory {
 	mainBlock := make(TACBlock, 0)
-	return &TACFactory{0, 0, &mainBlock, make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp), nil}
+	return &TACFactory{0, 0, &mainBlock, make(TACBlock, 0), make(TACBlock, 0), 0, 0, nil, make(map[string][]*Temp), nil}
 }
 
 func (f *TACFactory) AppendToBlock(stmt TACStmtI) {
@@ -139,6 +140,10 @@ func (f *TACFactory) registerBuiltins() {
 		f.OutBlock = append(f.OutBlock, f.NotBuiltIn())
 	}
 
+	if f.RegisteredBuiltins["__alloc_frame"] != nil {
+		f.OutBlock = append(f.OutBlock, f.AllocFrameBuiltIn())
+	}
+
 }
 
 func (s *TACFactory) GetBuiltinParams(name string) []*Temp {
@@ -188,7 +193,12 @@ func (f *TACFactory) String() string {
 	main_block += "return 0;\n}\n"
 
 	out_block := ""
+	// builtins
 	for _, stmt := range f.OutBlock {
+		out_block += stmt.String() + "\n"
+	}
+	// user defined functions
+	for _, stmt := range f.UserBlock {
 		out_block += stmt.String() + "\n"
 	}
 

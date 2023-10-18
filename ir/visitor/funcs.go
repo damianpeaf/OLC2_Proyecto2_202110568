@@ -1,6 +1,9 @@
 package visitor
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
@@ -22,6 +25,9 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 		args = v.Visit(ctx.Arg_list()).([]*abstract.Argument)
 	}
 
+	fmt.Println("func call: ", canditateName)
+	fmt.Println("obj: ", funcObj)
+
 	// struct has priority over func
 	// if structObj != nil {
 	// 	if IsArgValidForStruct(args) {
@@ -38,9 +44,74 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 
 	if funcObj.Type == abstract.BUILTIN_FUNCTION {
 		return v.BuiltinHandler(funcObj.Name, args)
+	} else if funcObj.Type == abstract.USER_DEFINED_FUNCTION {
+
+		// save the current value of stack pointer
+		prevStack := v.Factory.NewTemp()
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(prevStack).SetVal(v.Factory.NewStackPtr()))
+
+		allocParams := v.Factory.GetBuiltinParams("__alloc_frame")
+		size := allocParams[0]
+		prevFrame := allocParams[1]
+
+		// set size
+		frameSize := len(funcObj.Params) + funcObj.ScopeTrace.Correlative
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(size).SetVal(v.Factory.NewLiteral().SetValue(strconv.Itoa(frameSize))))
+
+		// set prev frame
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(prevFrame).SetVal(v.Factory.GetFramePointer()))
+
+		// call alloc frame
+		v.Factory.AppendToBlock(v.Factory.NewMethodCall("__alloc_frame"))
+
+		// set frame pointer
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(v.Factory.GetFramePointer()).SetVal(prevStack))
+
+		// set params
+		v.SetParamsOnFrame(funcObj, args)
+
+		// call function
+		v.Factory.AppendToBlock(v.Factory.NewMethodCall(funcObj.Name))
+
+		/*
+			 	summary:
+				t1 = P // at this moment P is the next free space on stack (will be occupied by the prev_frame value)
+				size = #params + #variables on scope
+				alloc_frame(size, t1) // prev_frame | ... | ... | ...
+				F = t1
+				func()
+		*/
+		return &value.ValueWrapper{
+			Val:      funcObj.ReturnTemp,
+			Metadata: funcObj.ReturnType,
+		}
 	}
 
 	return v.GetNilVW()
+}
+
+func (v *IrVisitor) SetParamsOnFrame(funcObj *abstract.Function, args []*abstract.Argument) {
+	// need to map the params to the args, and save the variable. {name, value}
+	argsOk, argsMap := funcObj.ValidateArgs(args)
+
+	if !argsOk {
+		return
+	}
+
+	// set the scope
+	prevScope := v.ScopeTrace.CurrentScope
+	v.ScopeTrace.CurrentScope = funcObj.ScopeTrace.GlobalScope
+	for _, param := range funcObj.Params {
+		argVar := v.ScopeTrace.GetVariable(param.InnerName)
+		arg := argsMap[param.InnerName]
+
+		// assign the value to the variable
+		stackAddress := argVar.GetStackStmt(v.Factory)
+		assign := v.Factory.NewSimpleAssignment().SetAssignee(stackAddress).SetVal(arg.Wrapper.Val)
+		v.Factory.AppendToBlock(assign)
+
+	}
+	v.ScopeTrace.CurrentScope = prevScope
 }
 
 func (v *IrVisitor) VisitArgList(ctx *compiler.ArgListContext) interface{} {
@@ -186,7 +257,7 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 		ReturnTemp: returnTemp,
 	}
 
-	v.ScopeTrace.NewFunction(funcName, function)
+	prevScope.NewFunction(funcName, function)
 
 	// Al the content will be added to the function block
 	funcBlock := make(tac.TACBlock, 0)
@@ -195,6 +266,7 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 
 	returnLabel := v.Factory.NewLabel()
 
+	prevReturn := v.Transfer.Return
 	v.Transfer.Return = &TransferReturn{
 		ReturnTemp:  returnTemp,
 		ReturnType:  returnType,
@@ -219,12 +291,18 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 
 	// add return label
 	v.Factory.AppendToBlock(returnLabel)
-	// TODO: assign return value to return temp
+
+	// return to previous frame
+	prevFrameTemp := v.Factory.NewTemp()
+	prevFrameStack := v.Factory.NewStackIndexed().SetIndex(v.Factory.GetFramePointer())                                     // stack[fp]
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(prevFrameTemp).SetVal(prevFrameStack))              // t1 = stack[fp]
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(v.Factory.GetFramePointer()).SetVal(prevFrameTemp)) // fp = t1
 
 	// now we have to add the func tac obj to outer block
 	tacFunc := v.Factory.NewMethodDcl(funcBlock).SetName(funcName)
-	v.Factory.OutBlock = append(v.Factory.OutBlock, tacFunc)
+	v.Factory.UserBlock = append(v.Factory.UserBlock, tacFunc)
 
+	v.Transfer.Return = prevReturn
 	v.Factory.MainBlock = prevBlock
 	v.ScopeTrace.CurrentScope = prevScope
 	return nil

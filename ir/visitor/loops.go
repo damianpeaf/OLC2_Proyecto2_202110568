@@ -9,13 +9,11 @@ import (
 
 func (v *IrVisitor) VisitReturnStmt(ctx *compiler.ReturnStmtContext) interface{} {
 
+	v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("return stmt"))
 	if ctx.Expr() != nil {
 		wrapper := v.Visit(ctx.Expr()).(*value.ValueWrapper)
-		v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("return stmt"))
 		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(v.Transfer.Return.ReturnTemp).SetVal(wrapper.Val))
 	}
-
-	v.Factory.AppendToBlock(v.Factory.NewComment().SetComment("return stmt"))
 	v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(v.Transfer.Return.ReturnLabel))
 	return nil
 }

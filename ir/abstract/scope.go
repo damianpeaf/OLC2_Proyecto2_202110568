@@ -65,6 +65,7 @@ func (s *BaseScope) GetFunction(name string) *Function {
 	// TODO: check if function is a method
 	aux := s
 	for aux != nil {
+		fmt.Println("funcs: ", aux.Functions)
 		if aux.Functions[name] != nil {
 			return aux.Functions[name]
 		}

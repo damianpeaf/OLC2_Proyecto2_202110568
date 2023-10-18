@@ -23,6 +23,8 @@ func (f *TACFactory) reserveParams(name string) []*Temp {
 		return []*Temp{f.NewTemp(), f.NewTemp(), f.NewTemp()}
 	case "__not":
 		return []*Temp{f.NewTemp(), f.NewTemp()}
+	case "__alloc_frame":
+		return []*Temp{f.NewTemp(), f.NewTemp()} // size, prevFrame
 	}
 
 	return nil
@@ -535,4 +537,58 @@ func (f *TACFactory) CompareStrBuiltIn() *MethodDcl {
 		Name:  "__compare_str",
 		Block: block,
 	}
+}
+
+func (f *TACFactory) AllocFrameBuiltIn() *MethodDcl {
+	block := make(TACBlock, 0)
+	params := f.GetBuiltinParams("__alloc_frame")
+
+	size := params[0]
+	prevFrame := params[1]
+	auxCount := f.NewTemp()
+	p := f.NewStackPtr()
+
+	endLabel := f.NewLabel()
+	allocLabel := f.NewLabel()
+
+	/*
+		save on stack
+		1. prevFrame
+		2. reserved 'size' bytes
+	*/
+
+	// 1. prevFrame
+	assign1 := f.NewSimpleAssignment().SetAssignee(f.NewStackIndexed().SetIndex(p)).SetVal(prevFrame)                        //  stack[SP] = prevFrame
+	increase := f.NewCompoundAssignment().SetAssignee(p).SetLeft(p).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS) // SP = SP + 1
+	block = append(block, assign1)
+	block = append(block, increase)
+
+	// 2. reserved 'size' bytes
+	// auxCount = 0
+	assign2 := f.NewSimpleAssignment().SetAssignee(auxCount).SetVal(f.NewLiteral().SetValue("0"))
+	block = append(block, assign2)
+	block = append(block, allocLabel)
+	// if auxCount == size goto end
+	condition := f.NewBoolExpression().SetLeft(auxCount).SetRight(size).SetOp(EQ)
+	conditional := f.NewConditionalJump().SetCondition(condition).SetTarget(endLabel)
+	block = append(block, conditional)
+	// stack[SP] = 0
+	assign3 := f.NewSimpleAssignment().SetAssignee(f.NewStackIndexed().SetIndex(p)).SetVal(f.NewLiteral().SetValue("0"))
+	block = append(block, assign3)
+	// SP = SP + 1
+	increase2 := f.NewCompoundAssignment().SetAssignee(p).SetLeft(p).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, increase2)
+	// auxCount = auxCount + 1
+	assign4 := f.NewCompoundAssignment().SetAssignee(auxCount).SetLeft(auxCount).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign4)
+	// goto allocLabel
+	block = append(block, f.NewUnconditionalJump().SetTarget(allocLabel))
+	// endLabel
+	block = append(block, endLabel)
+
+	return &MethodDcl{
+		Name:  "__alloc_frame",
+		Block: block,
+	}
+
 }

@@ -74,8 +74,18 @@ func (v *IrVisitor) VisitLiteralExp(ctx *compiler.LiteralExpContext) interface{}
 func (v *IrVisitor) VisitBinaryExp(ctx *compiler.BinaryExpContext) interface{} {
 
 	op := ctx.GetOp().GetText()
-	left := v.Visit(ctx.GetLeft()).(*value.ValueWrapper)
-	right := v.Visit(ctx.GetRight()).(*value.ValueWrapper)
+
+	var left *value.ValueWrapper
+	var right *value.ValueWrapper
+
+	switch ctx.GetRight().(type) {
+	case *compiler.FuncCallExpContext:
+		right = v.Visit(ctx.GetRight()).(*value.ValueWrapper) // just in case its a recursive call
+		left = v.Visit(ctx.GetLeft()).(*value.ValueWrapper)
+	default:
+		left = v.Visit(ctx.GetLeft()).(*value.ValueWrapper)
+		right = v.Visit(ctx.GetRight()).(*value.ValueWrapper)
+	}
 
 	strat, ok := v.Strats[op]
 
@@ -145,4 +155,8 @@ func (v *IrVisitor) VisitIdExp(ctx *compiler.IdExpContext) interface{} {
 		Val:      temp,
 		Metadata: variable.Type,
 	}
+}
+
+func (v *IrVisitor) VisitFuncCallExp(ctx *compiler.FuncCallExpContext) interface{} {
+	return v.Visit(ctx.Func_call())
 }
