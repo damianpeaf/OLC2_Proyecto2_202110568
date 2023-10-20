@@ -144,6 +144,18 @@ func (f *TACFactory) registerBuiltins() {
 		f.OutBlock = append(f.OutBlock, f.AllocFrameBuiltIn())
 	}
 
+	if f.RegisteredBuiltins["__vector_append"] != nil {
+		f.OutBlock = append(f.OutBlock, f.VectorAppendBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__vector_remove_last"] != nil {
+		f.OutBlock = append(f.OutBlock, f.VectorRemoveLastBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__vector_remove"] != nil {
+		f.OutBlock = append(f.OutBlock, f.VectorRemoveBuiltIn())
+	}
+
 }
 
 func (s *TACFactory) GetBuiltinParams(name string) []*Temp {

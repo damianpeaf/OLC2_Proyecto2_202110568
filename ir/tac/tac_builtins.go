@@ -25,6 +25,12 @@ func (f *TACFactory) reserveParams(name string) []*Temp {
 		return []*Temp{f.NewTemp(), f.NewTemp()}
 	case "__alloc_frame":
 		return []*Temp{f.NewTemp(), f.NewTemp()} // size, prevFrame
+	case "__vector_append":
+		return []*Temp{f.NewTemp(), f.NewTemp()} // vector, item
+	case "__vector_remove_last":
+		return []*Temp{f.NewTemp()} // vector
+	case "__vector_remove":
+		return []*Temp{f.NewTemp(), f.NewTemp()} // vector, index
 	}
 
 	return nil
@@ -591,4 +597,342 @@ func (f *TACFactory) AllocFrameBuiltIn() *MethodDcl {
 		Block: block,
 	}
 
+}
+
+func (f *TACFactory) VectorAppendBuiltIn() *MethodDcl {
+	block := make(TACBlock, 0)
+	params := f.GetBuiltinParams("__vector_append")
+
+	vectorVarIndex := params[0]
+	item := params[1]
+
+	/*
+		vectorHeapAddress = stack[vectorVarIndex] // prev address of the vector in the heap
+		stack[vectorVarIndex] = heapPtr // new address of the vector
+
+		// new size
+		size = heap[vectorHeapAddress]
+		size = size + 1
+
+		heap[heapPtr] = size
+		hp = hp + 1
+
+		// clone the vector
+		size = size - 1 // size of the previous vector
+
+		current = 0
+		vectorHeapAddress = vectorHeapAddress + 1 // skip the size
+
+		clone:
+		if(size == current) goto end_clone
+		aux = heap[vectorHeapAddress]
+		heap[hp] = aux
+
+		hp = hp + 1
+		vectorHeapAddress = vectorHeapAddress + 1
+		current = current + 1
+		goto clone
+		end_clone:
+
+		// add the new item
+		heap[hp] = item
+		hp = hp + 1
+
+
+	*/
+
+	vectorHeapAddress := f.NewTemp()
+	size := f.NewTemp()
+	heapPtr := f.NewHeapPtr()
+	aux := f.NewTemp()
+	current := f.NewTemp()
+
+	cloneLabel := f.NewLabel()
+	endCloneLabel := f.NewLabel()
+
+	// vectorHeapAddress = stack[vectorVarIndex]
+	assign1 := f.NewSimpleAssignment().SetAssignee(vectorHeapAddress).SetVal(f.NewStackIndexed().SetIndex(vectorVarIndex))
+	block = append(block, assign1)
+
+	// stack[vectorVarIndex] = heapPtr
+	assign2 := f.NewSimpleAssignment().SetAssignee(f.NewStackIndexed().SetIndex(vectorVarIndex)).SetVal(heapPtr)
+	block = append(block, assign2)
+
+	// size = heap[vectorHeapAddress]
+	assign3 := f.NewSimpleAssignment().SetAssignee(size).SetVal(f.NewHeapIndexed().SetIndex(vectorHeapAddress))
+	block = append(block, assign3)
+
+	// size = size + 1
+	assign4 := f.NewCompoundAssignment().SetAssignee(size).SetLeft(size).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign4)
+
+	// heap[heapPtr] = size
+	assign5 := f.NewSimpleAssignment().SetAssignee(f.NewHeapIndexed().SetIndex(heapPtr)).SetVal(size)
+	block = append(block, assign5)
+
+	// hp = hp + 1
+	assign6 := f.NewCompoundAssignment().SetAssignee(f.NewHeapPtr()).SetLeft(f.NewHeapPtr()).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign6)
+
+	// size = size - 1
+	assign7 := f.NewCompoundAssignment().SetAssignee(size).SetLeft(size).SetRight(f.NewLiteral().SetValue("1")).SetOperator(MINUS)
+	block = append(block, assign7)
+
+	// current = 0
+	assign8 := f.NewSimpleAssignment().SetAssignee(current).SetVal(f.NewLiteral().SetValue("0"))
+	block = append(block, assign8)
+
+	// vectorHeapAddress = vectorHeapAddress + 1
+	assign9 := f.NewCompoundAssignment().SetAssignee(vectorHeapAddress).SetLeft(vectorHeapAddress).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign9)
+
+	// clone:
+	block = append(block, cloneLabel)
+
+	// if(size == current) goto end_clone
+	condition := f.NewBoolExpression().SetLeft(size).SetRight(current).SetOp(EQ).SetLeftCast("int").SetRightCast("int")
+	conditional := f.NewConditionalJump().SetCondition(condition).SetTarget(endCloneLabel)
+	block = append(block, conditional)
+
+	// aux = heap[vectorHeapAddress]
+	assign10 := f.NewSimpleAssignment().SetAssignee(aux).SetVal(f.NewHeapIndexed().SetIndex(vectorHeapAddress))
+	block = append(block, assign10)
+
+	// heap[hp] = aux
+	assign11 := f.NewSimpleAssignment().SetAssignee(f.NewHeapIndexed().SetIndex(f.NewHeapPtr())).SetVal(aux)
+	block = append(block, assign11)
+
+	// hp = hp + 1
+	assign12 := f.NewCompoundAssignment().SetAssignee(f.NewHeapPtr()).SetLeft(f.NewHeapPtr()).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign12)
+
+	// vectorHeapAddress = vectorHeapAddress + 1
+	assign13 := f.NewCompoundAssignment().SetAssignee(vectorHeapAddress).SetLeft(vectorHeapAddress).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign13)
+
+	// current = current + 1
+	assign14 := f.NewCompoundAssignment().SetAssignee(current).SetLeft(current).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign14)
+
+	// goto clone
+	block = append(block, f.NewUnconditionalJump().SetTarget(cloneLabel))
+
+	// end_clone:
+	block = append(block, endCloneLabel)
+
+	// heap[hp] = item
+	assign15 := f.NewSimpleAssignment().SetAssignee(f.NewHeapIndexed().SetIndex(f.NewHeapPtr())).SetVal(item)
+	block = append(block, assign15)
+
+	// hp = hp + 1
+	assign16 := f.NewCompoundAssignment().SetAssignee(f.NewHeapPtr()).SetLeft(f.NewHeapPtr()).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign16)
+
+	return &MethodDcl{
+		Name:  "__vector_append",
+		Block: block,
+	}
+}
+
+func (f *TACFactory) VectorRemoveLastBuiltIn() *MethodDcl {
+	block := make(TACBlock, 0)
+	params := f.GetBuiltinParams("__vector_remove_last")
+
+	vectorVarIndex := params[0]
+
+	/*
+		// just decrease the size of the vector
+		vectorHeapAddress = stack[vectorVarIndex] // prev address of the vector in the heap
+		size = heap[vectorHeapAddress]
+		size = size - 1
+		heap[vectorHeapAddress] = size
+	*/
+
+	vectorHeapAddress := f.NewTemp()
+	size := f.NewTemp()
+
+	// vectorHeapAddress = stack[vectorVarIndex]
+	assign1 := f.NewSimpleAssignment().SetAssignee(vectorHeapAddress).SetVal(f.NewStackIndexed().SetIndex(vectorVarIndex))
+	block = append(block, assign1)
+
+	// size = heap[vectorHeapAddress]
+	assign2 := f.NewSimpleAssignment().SetAssignee(size).SetVal(f.NewHeapIndexed().SetIndex(vectorHeapAddress))
+	block = append(block, assign2)
+
+	// size = size - 1
+	assign3 := f.NewCompoundAssignment().SetAssignee(size).SetLeft(size).SetRight(f.NewLiteral().SetValue("1")).SetOperator(MINUS)
+	block = append(block, assign3)
+
+	// heap[vectorHeapAddress] = size
+	assign4 := f.NewSimpleAssignment().SetAssignee(f.NewHeapIndexed().SetIndex(vectorHeapAddress)).SetVal(size)
+	block = append(block, assign4)
+
+	return &MethodDcl{
+		Name:  "__vector_remove_last",
+		Block: block,
+	}
+}
+
+func (f *TACFactory) VectorRemoveBuiltIn() *MethodDcl {
+	block := make(TACBlock, 0)
+	params := f.GetBuiltinParams("__vector_remove")
+
+	vectorVarIndex := params[0]
+	removeIndex := params[1]
+
+	/*
+		// check if the index is valid
+
+		vectorHeapAddress = stack[vectorVarIndex] // prev address of the vector in the heap
+		size = heap[vectorHeapAddress]
+
+		if(removeIndex < 0) goto error
+		if(removeIndex >= size) goto error
+
+		// remove the item
+		stack[vectorVarIndex] = heapPtr // new address of the vector
+
+		// new size
+		size = size - 1
+
+		heap[heapPtr] = size
+		hp = hp + 1
+
+		size = size + 1 // just to traverse all the items
+
+		// clone the vector, except the item to remove
+		current = 0
+		vectorHeapAddress = vectorHeapAddress + 1 // skip the size
+
+		clone:
+		if(size == current) goto end_clone
+		if(current == removeIndex) goto skip_item
+
+		aux = heap[vectorHeapAddress]
+		heap[hp] = aux
+
+		hp = hp + 1
+
+		skip_item:
+		vectorHeapAddress = vectorHeapAddress + 1
+		current = current + 1
+		goto clone
+
+		error:
+		print("BoundsError")
+		goto end_clone
+
+		end_clone:
+	*/
+
+	vectorHeapAddress := f.NewTemp()
+	size := f.NewTemp()
+	aux := f.NewTemp()
+	current := f.NewTemp()
+	heapPtr := f.NewHeapPtr()
+
+	cloneLabel := f.NewLabel()
+	endCloneLabel := f.NewLabel()
+	skipItemLabel := f.NewLabel()
+	errorLabel := f.NewLabel()
+
+	// vectorHeapAddress = stack[vectorVarIndex]
+	assign1 := f.NewSimpleAssignment().SetAssignee(vectorHeapAddress).SetVal(f.NewStackIndexed().SetIndex(vectorVarIndex))
+	block = append(block, assign1)
+
+	// size = heap[vectorHeapAddress]
+	assign2 := f.NewSimpleAssignment().SetAssignee(size).SetVal(f.NewHeapIndexed().SetIndex(vectorHeapAddress))
+	block = append(block, assign2)
+
+	// if(removeIndex < 0) goto error
+	condition1 := f.NewBoolExpression().SetLeft(removeIndex).SetRight(f.NewLiteral().SetValue("0")).SetOp(LT).SetLeftCast("int").SetRightCast("int")
+	conditional1 := f.NewConditionalJump().SetCondition(condition1).SetTarget(errorLabel)
+	block = append(block, conditional1)
+
+	// if(removeIndex >= size) goto error
+	condition2 := f.NewBoolExpression().SetLeft(removeIndex).SetRight(size).SetOp(GTE).SetLeftCast("int").SetRightCast("int")
+	conditional2 := f.NewConditionalJump().SetCondition(condition2).SetTarget(errorLabel)
+	block = append(block, conditional2)
+
+	// stack[vectorVarIndex] = heapPtr
+	assign3 := f.NewSimpleAssignment().SetAssignee(f.NewStackIndexed().SetIndex(vectorVarIndex)).SetVal(heapPtr)
+	block = append(block, assign3)
+
+	// size = size - 1
+	assign4 := f.NewCompoundAssignment().SetAssignee(size).SetLeft(size).SetRight(f.NewLiteral().SetValue("1")).SetOperator(MINUS)
+	block = append(block, assign4)
+
+	// heap[heapPtr] = size
+	assign5 := f.NewSimpleAssignment().SetAssignee(f.NewHeapIndexed().SetIndex(heapPtr)).SetVal(size)
+	block = append(block, assign5)
+
+	// hp = hp + 1
+	assign6 := f.NewCompoundAssignment().SetAssignee(f.NewHeapPtr()).SetLeft(f.NewHeapPtr()).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign6)
+
+	// size = size + 1
+	assign7 := f.NewCompoundAssignment().SetAssignee(size).SetLeft(size).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign7)
+
+	// current = 0
+	assign8 := f.NewSimpleAssignment().SetAssignee(current).SetVal(f.NewLiteral().SetValue("0"))
+	block = append(block, assign8)
+
+	// vectorHeapAddress = vectorHeapAddress + 1
+	assign9 := f.NewCompoundAssignment().SetAssignee(vectorHeapAddress).SetLeft(vectorHeapAddress).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign9)
+
+	// clone:
+	block = append(block, cloneLabel)
+
+	// if(size == current) goto end_clone
+	condition3 := f.NewBoolExpression().SetLeft(size).SetRight(current).SetOp(EQ).SetLeftCast("int").SetRightCast("int")
+	conditional3 := f.NewConditionalJump().SetCondition(condition3).SetTarget(endCloneLabel)
+	block = append(block, conditional3)
+
+	// if(current == removeIndex) goto skip_item
+	condition4 := f.NewBoolExpression().SetLeft(current).SetRight(removeIndex).SetOp(EQ).SetLeftCast("int").SetRightCast("int")
+	conditional4 := f.NewConditionalJump().SetCondition(condition4).SetTarget(skipItemLabel)
+	block = append(block, conditional4)
+
+	// aux = heap[vectorHeapAddress]
+	assign10 := f.NewSimpleAssignment().SetAssignee(aux).SetVal(f.NewHeapIndexed().SetIndex(vectorHeapAddress))
+	block = append(block, assign10)
+
+	// heap[hp] = aux
+	assign11 := f.NewSimpleAssignment().SetAssignee(f.NewHeapIndexed().SetIndex(f.NewHeapPtr())).SetVal(aux)
+	block = append(block, assign11)
+
+	// hp = hp + 1
+	assign12 := f.NewCompoundAssignment().SetAssignee(f.NewHeapPtr()).SetLeft(f.NewHeapPtr()).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign12)
+
+	// skip_item:
+	block = append(block, skipItemLabel)
+
+	// vectorHeapAddress = vectorHeapAddress + 1
+	assign13 := f.NewCompoundAssignment().SetAssignee(vectorHeapAddress).SetLeft(vectorHeapAddress).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign13)
+
+	// current = current + 1
+	assign14 := f.NewCompoundAssignment().SetAssignee(current).SetLeft(current).SetRight(f.NewLiteral().SetValue("1")).SetOperator(PLUS)
+	block = append(block, assign14)
+
+	// goto clone
+	block = append(block, f.NewUnconditionalJump().SetTarget(cloneLabel))
+
+	// error:
+	block = append(block, errorLabel)
+
+	// print("BoundsError")
+	prints := f.Utility.PrintStringStream("BoundsError\n")
+	block = append(block, prints...)
+
+	// end_clone:
+	block = append(block, endCloneLabel)
+
+	return &MethodDcl{
+		Name:  "__vector_remove",
+		Block: block,
+	}
 }

@@ -10,12 +10,14 @@ const (
 )
 
 type Function struct {
-	Name       string
-	Params     []*Param
-	Type       string
-	ScopeTrace *ScopeTrace
-	ReturnType string
-	ReturnTemp *tac.Temp
+	Name          string
+	Params        []*Param
+	Type          string
+	ScopeTrace    *ScopeTrace
+	ReturnType    string
+	ReturnTemp    *tac.Temp
+	StructPointer *tac.Temp
+	StructRef     *IVOR
 }
 
 func (f *Function) ValidateArgs(args []*Argument) (bool, map[string]*Argument) {

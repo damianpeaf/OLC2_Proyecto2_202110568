@@ -1,7 +1,6 @@
 package abstract
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
@@ -34,23 +33,35 @@ type IVOR struct {
 	Address       int
 	FrameRelative bool
 	Offset        int
+	Temp          *tac.Temp // refers to the temp that holds the value, probably in the heap
 	// Copy() IVOR // ? it would be interesting
 }
 
-func (i *IVOR) GetStackStmt(f *tac.TACFactory) *tac.StackIndexedValue {
-	var index tac.SimpleValue = f.NewLiteral().SetValue(strconv.Itoa(i.Address))
+func (i *IVOR) GetStackStmt(f *tac.TACFactory) tac.SimpleValue {
+	// this method should be called GetValue or something, but i dont care
 
-	fmt.Println("IVOR: ", i.Name, i.Type, i.Address, i.FrameRelative, i.Offset)
+	if i.Temp != nil {
+		return i.Temp
+	}
+
+	index := i.GetStackIndex(f)
+	return f.NewStackIndexed().SetIndex(index)
+}
+
+func (i *IVOR) GetStackIndex(f *tac.TACFactory) tac.SimpleValue {
+
+	var index tac.SimpleValue = f.NewLiteral().SetValue(strconv.Itoa(i.Address))
 
 	if i.FrameRelative {
 		// ? This could be reserved in some way
 		// framePointer + (address + offset) -> stack address
 		index = f.NewTemp()
-		addressComputation := f.NewCompoundAssignment().SetAssignee(index).SetLeft(f.GetFramePointer()).SetRight(f.NewLiteral().SetValue(strconv.Itoa(i.Address + i.Offset))).SetLeftCast("int").SetRightCast("int").SetOperator("+")
+		// addressComputation := f.NewCompoundAssignment().SetAssignee(index).SetLeft(f.GetFramePointer()).SetRight(f.NewLiteral().SetValue(strconv.Itoa(i.Address + i.Offset))).SetLeftCast("int").SetRightCast("int").SetOperator("+")
+		addressComputation := f.NewCompoundAssignment().SetAssignee(index).SetLeft(f.GetFramePointer()).SetRight(f.NewLiteral().SetValue(strconv.Itoa(i.Address + i.Offset))).SetOperator("+")
 		f.AppendToBlock(addressComputation)
 	}
 
-	return f.NewStackIndexed().SetIndex(index)
+	return index
 }
 
 type Range struct {

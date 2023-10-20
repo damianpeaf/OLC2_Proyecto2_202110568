@@ -44,10 +44,10 @@ func (v *IrVisitor) VisitTypeDecl(ctx *compiler.TypeDeclContext) interface{} {
 
 func (v *IrVisitor) VisitDirectAssign(ctx *compiler.DirectAssignContext) interface{} {
 
-	varName := ctx.Id_pattern().GetText()
+	pattern := ctx.Id_pattern().GetText()
 	varValue := v.Visit(ctx.Expr()).(*value.ValueWrapper)
 
-	variable := v.ScopeTrace.GetVariable(varName)
+	variable := v.ScopeTrace.GetVariable(pattern)
 
 	if variable == nil {
 		return v.GetNilVW()
@@ -65,9 +65,9 @@ func (v *IrVisitor) VisitDirectAssign(ctx *compiler.DirectAssignContext) interfa
 }
 
 func (v *IrVisitor) VisitArithmeticAssign(ctx *compiler.ArithmeticAssignContext) interface{} {
-	varName := ctx.Id_pattern().GetText()
+	pattern := ctx.Id_pattern().GetText()
 
-	variable := v.ScopeTrace.GetVariable(varName)
+	variable := v.ScopeTrace.GetVariable(pattern)
 
 	if variable == nil {
 		return v.GetNilVW()

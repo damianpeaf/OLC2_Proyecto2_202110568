@@ -43,7 +43,7 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 	}
 
 	if funcObj.Type == abstract.BUILTIN_FUNCTION {
-		return v.BuiltinHandler(funcObj.Name, args)
+		return v.BuiltinHandler(funcObj, args)
 	} else if funcObj.Type == abstract.USER_DEFINED_FUNCTION {
 
 		// save the current value of stack pointer
@@ -239,7 +239,7 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 		returnType = v.Visit(ctx.Type_()).(string)
 	}
 
-	frameVisitor := NewFrameVisitor(true, len(params))
+	frameVisitor := NewFrameVisitor(true, len(params), v.Factory)
 	staticScopeTrace := frameVisitor.VisitStmts(ctx.AllStmt())
 	prevScope := v.ScopeTrace.CurrentScope
 

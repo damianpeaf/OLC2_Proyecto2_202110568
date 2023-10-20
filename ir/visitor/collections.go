@@ -3,12 +3,10 @@ package visitor
 import (
 	"strconv"
 
-	"regexp"
-	"strings"
-
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/utils"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
@@ -20,36 +18,6 @@ type VectorItemReference struct {
 type MatrixItemReference struct {
 	Matrix  *abstract.IVOR
 	Indexes []*value.ValueWrapper
-}
-
-func IsVectorType(_type string) bool {
-
-	// Vector starts with only one [ and ends with only one ]
-	vectorPattern := "^\\[.*\\]$"
-
-	// Matrix starts with AT LEAST two [[ and ends with at least two ]]
-	matrixPattern := "^\\[\\[.*\\]\\](\\[.*\\]\\])*$"
-
-	// match vector pattern but not matrix pattern
-
-	match, _ := regexp.MatchString(vectorPattern, _type)
-	match2, _ := regexp.MatchString(matrixPattern, _type)
-
-	return match && !match2
-}
-
-func RemoveBrackets(s string) string {
-	return strings.Trim(s, "[]")
-}
-
-func IsMatrixType(_type string) bool {
-
-	// Matrix starts with AT LEAST two [[ and ends with at least two ]]
-	matrixPattern := "^\\[\\[.*\\]\\](\\[.*\\]\\])*$"
-
-	match, _ := regexp.MatchString(matrixPattern, _type)
-
-	return match
 }
 
 func (v *IrVisitor) saveVectorSize(temp *tac.Temp, size int) {
@@ -78,7 +46,8 @@ func (v *IrVisitor) VisitVectorItemList(ctx *compiler.VectorItemListContext) int
 	if len(ctx.AllExpr()) == 0 {
 		v.saveVectorSize(temp, 0)
 		return &value.ValueWrapper{
-			Val: temp,
+			Val:      temp,
+			Metadata: "[]",
 		}
 	}
 
@@ -134,13 +103,13 @@ func (v *IrVisitor) VisitVectorItem(ctx *compiler.VectorItemContext) interface{}
 		indexes = append(indexes, val)
 	}
 
-	if structType == abstract.IVOR_VECTOR && IsVectorType(variable.Type) {
+	if structType == abstract.IVOR_VECTOR && utils.IsVectorType(variable.Type) {
 		// TODO  post dynamic check
 		return &VectorItemReference{
 			Vector: variable,
 			Index:  index,
 		}
-	} else if structType == abstract.IVOR_MATRIX && IsMatrixType(variable.Type) {
+	} else if structType == abstract.IVOR_MATRIX && utils.IsMatrixType(variable.Type) {
 		return &MatrixItemReference{
 			Matrix:  variable,
 			Indexes: indexes,
@@ -178,7 +147,9 @@ func (v *IrVisitor) VisitVectorPropExp(ctx *compiler.VectorPropExpContext) inter
 func (v *IrVisitor) VisitVectorItemExp(ctx *compiler.VectorItemExpContext) interface{} {
 	switch itemRef := v.Visit(ctx.Vector_item()).(type) {
 	case *VectorItemReference:
-		// TODO: index dynamic check
+
+		endLabel := v.Factory.NewLabel()
+		errorLabel := v.Factory.NewLabel()
 
 		itemTemp := v.Factory.NewTemp()
 		relativeAddress := itemRef.Index.Val
@@ -186,6 +157,20 @@ func (v *IrVisitor) VisitVectorItemExp(ctx *compiler.VectorItemExpContext) inter
 		offset := itemRef.Vector.GetStackStmt(v.Factory) // stack[variable]
 		offsetTemp := v.Factory.NewTemp()
 		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(offsetTemp).SetVal(offset)) // t = stack[variable]
+
+		// check size
+		size := v.Factory.NewTemp()
+		// size = heap[t]
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(size).SetVal(v.Factory.NewHeapIndexed().SetIndex(offsetTemp)))
+
+		//  relativeAddress >= size
+		condition := v.Factory.NewBoolExpression().SetLeft(relativeAddress).SetRight(size).SetOp(tac.GTE).SetLeftCast("int")
+		v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(errorLabel))
+
+		// if relativeAddress < 0
+		condition = v.Factory.NewBoolExpression().SetLeft(relativeAddress).SetRight(v.Factory.NewLiteral().SetValue("0")).SetOp(tac.LT).SetLeftCast("int")
+		v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(errorLabel))
+
 		// increase offset by 1, to skip size
 		v.Factory.AppendToBlock(v.Factory.NewCompoundAssignment().SetAssignee(offsetTemp).SetLeft(offsetTemp).SetRight(v.Factory.NewLiteral().SetValue("1")).SetOperator("+"))
 
@@ -196,9 +181,18 @@ func (v *IrVisitor) VisitVectorItemExp(ctx *compiler.VectorItemExpContext) inter
 		heapIndexed := v.Factory.NewHeapIndexed().SetIndex(absoluteAddress)
 		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(itemTemp).SetVal(heapIndexed))
 
+		v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(endLabel))
+
+		v.Factory.AppendToBlock(errorLabel)
+
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(itemTemp).SetVal(v.GetNilVW().Val))
+		v.Factory.AppendBlock(v.Utility.PrintStringStream("BoundsError\n"))
+
+		v.Factory.AppendToBlock(endLabel)
+
 		return &value.ValueWrapper{
 			Val:      itemTemp,
-			Metadata: RemoveBrackets(itemRef.Vector.Type),
+			Metadata: utils.RemoveBrackets(itemRef.Vector.Type),
 		}
 	case *MatrixItemReference:
 		// TODO: implement

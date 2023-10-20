@@ -6,6 +6,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/abstract"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
 )
 
 /*
@@ -29,9 +30,9 @@ type FrameVisitor struct {
 	ScopeTrace *abstract.ScopeTrace
 }
 
-func NewFrameVisitor(frameRelative bool, paramOffset int) *FrameVisitor {
+func NewFrameVisitor(frameRelative bool, paramOffset int, factory *tac.TACFactory) *FrameVisitor {
 	return &FrameVisitor{
-		ScopeTrace: abstract.NewScopeTrace(frameRelative, paramOffset),
+		ScopeTrace: abstract.NewScopeTrace(frameRelative, paramOffset, factory),
 	}
 }
 

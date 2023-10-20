@@ -1,6 +1,13 @@
 package abstract
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/utils"
+)
 
 // ***** BASE SCOPE *****
 type BaseScope struct {
@@ -42,7 +49,35 @@ func (s *BaseScope) DirectVariable(variable *IVOR) {
 }
 
 func (s *BaseScope) GetVariable(pattern string) *IVOR {
-	// TODO: check if pattern refers to a struct field
+
+	if strings.Contains(pattern, ".") {
+		paternParts := strings.Split(pattern, ".")
+		mainObjName := paternParts[0]
+		mainObj := s.GetVariable(mainObjName)
+
+		if mainObj == nil {
+			return nil
+		}
+
+		var scope *BaseScope
+
+		if IsPrimitiveType(mainObj.Type) {
+			return nil
+		}
+
+		// search for its scope
+		if utils.IsVectorType(mainObj.Type) {
+			scope = DefaultVectorScope
+		}
+		// TODO: get struct scope
+		factory := s.ScopeTrace.Factory
+		structPointer := factory.NewTemp()
+		factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(mainObj.GetStackStmt(factory)))
+		// SP = stack[x] --> structPointer = struct_address
+
+		return s.searchObjectProp(structPointer, scope, strings.Join(paternParts[1:], "."))
+	}
+
 	// TODO: check if pattern refers to a pointer
 	aux := s
 	for aux != nil {
@@ -54,7 +89,101 @@ func (s *BaseScope) GetVariable(pattern string) *IVOR {
 	return nil
 }
 
-// TODO: searchObjectVariable
+func (s *BaseScope) searchObjectProp(structPointer *tac.Temp, scope *BaseScope, pattern string) *IVOR {
+	factory := s.ScopeTrace.Factory
+	patternParts := strings.Split(pattern, ".")
+	propName := patternParts[0]
+
+	if scope == DefaultVectorScope {
+		switch propName {
+
+		case "count":
+			factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(factory.NewHeapIndexed().SetIndex(structPointer)))
+			return &IVOR{
+				Name:          pattern,
+				Type:          IVOR_INT,
+				Address:       -1,
+				FrameRelative: false,
+				Offset:        -1,
+				Temp:          structPointer,
+			}
+
+		case "isEmpty":
+			computation := factory.NewTemp()
+			factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(factory.NewHeapIndexed().SetIndex(structPointer)))
+			endLabel := factory.NewLabel()
+			isEmptyLabel := factory.NewLabel()
+
+			// if computation == 0 goto isEmpty
+			// structPointer == 0
+			// goto end
+			// isEmpty:
+			// computation == 1
+			// end:
+
+			condition := factory.NewBoolExpression().SetLeft(structPointer).SetLeftCast("int").SetRight(factory.NewLiteral().SetValue("0")).SetOp(tac.EQ)
+			factory.AppendToBlock(factory.NewConditionalJump().SetCondition(condition).SetTarget(isEmptyLabel))
+			factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(computation).SetVal(factory.NewLiteral().SetValue("0")))
+			factory.AppendToBlock(factory.NewUnconditionalJump().SetTarget(endLabel))
+			factory.AppendToBlock(isEmptyLabel)
+			factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(computation).SetVal(factory.NewLiteral().SetValue("1")))
+			factory.AppendToBlock(endLabel)
+
+			return &IVOR{
+				Name:          pattern,
+				Type:          IVOR_BOOL,
+				Address:       -1,
+				FrameRelative: false,
+				Offset:        -1,
+				Temp:          computation,
+			}
+
+		default:
+			return nil
+		}
+	}
+
+	prop := scope.GetVariable(propName)
+
+	if prop == nil {
+		return nil
+	}
+
+	heapIndex := prop.Address
+	heapIndex++
+	// SP = SP + prop.offset
+	factory.AppendToBlock(factory.NewCompoundAssignment().SetAssignee(structPointer).SetLeft(structPointer).SetRight(factory.NewLiteral().SetValue(strconv.Itoa(heapIndex))).SetOperator("+"))
+
+	// SP = heap[SP]
+	factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(factory.NewHeapIndexed().SetIndex(structPointer)))
+
+	// keep searching
+	if !strings.Contains(pattern, ".") {
+		return &IVOR{
+			Name:          pattern,
+			Type:          prop.Type,
+			Address:       -1,
+			FrameRelative: false,
+			Offset:        -1,
+			Temp:          structPointer,
+		}
+	}
+
+	var newScope *BaseScope
+
+	if IsPrimitiveType(prop.Type) {
+		return nil
+	}
+
+	// search for its scope
+	if utils.IsVectorType(prop.Type) {
+		newScope = DefaultVectorScope
+	}
+
+	// TODO: get struct scope
+
+	return s.searchObjectProp(structPointer, newScope, strings.Join(patternParts[1:], "."))
+}
 
 func (s *BaseScope) NewFunction(name string, f *Function) *Function {
 	s.Functions[name] = f
@@ -62,7 +191,40 @@ func (s *BaseScope) NewFunction(name string, f *Function) *Function {
 }
 
 func (s *BaseScope) GetFunction(name string) *Function {
-	// TODO: check if function is a method
+	if strings.Contains(name, ".") {
+		patternParts := strings.Split(name, ".")
+		mainObjName := patternParts[0]
+		mainObj := s.GetVariable(mainObjName)
+
+		if mainObj == nil {
+			return nil
+		}
+
+		var scope *BaseScope
+
+		if IsPrimitiveType(mainObj.Type) {
+			return nil
+		}
+
+		// search for its scope
+		if utils.IsVectorType(mainObj.Type) {
+			scope = DefaultVectorScope
+		}
+
+		// TODO: get struct scope
+		factory := s.ScopeTrace.Factory
+		structPointer := factory.NewTemp()
+		factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(mainObj.GetStackStmt(factory)))
+		// SP = stack[x] --> structPointer = struct_address
+
+		objFunc := s.searchObjectFunction(structPointer, scope, strings.Join(patternParts[1:], "."))
+
+		if objFunc != nil {
+			objFunc.StructPointer = structPointer
+			objFunc.StructRef = mainObj
+		}
+		return objFunc
+	}
 	aux := s
 	for aux != nil {
 		fmt.Println("funcs: ", aux.Functions)
@@ -74,7 +236,61 @@ func (s *BaseScope) GetFunction(name string) *Function {
 	return nil
 }
 
-// TODO: searchObjectFunction
+func (s *BaseScope) searchObjectFunction(structPointer *tac.Temp, scope *BaseScope, pattern string) *Function {
+	factory := s.ScopeTrace.Factory
+
+	patternParts := strings.Split(pattern, ".")
+	funcName := patternParts[0]
+
+	if scope == DefaultVectorScope {
+		switch funcName {
+		case "append":
+			return VectorAppendFunc
+		case "removeLast":
+			return VectorRemoveLastFunc
+		case "remove":
+			return VectorRemoveFunc
+		default:
+			return nil
+		}
+	}
+
+	// if its the last part of the pattern, return the function
+	if !strings.Contains(pattern, ".") {
+		return scope.GetFunction(funcName)
+	}
+
+	// traverse the object
+	prop := scope.GetVariable(funcName)
+
+	if prop == nil {
+		return nil
+	}
+
+	heapIndex := prop.Address
+	heapIndex++
+
+	// SP = SP + prop.offset
+	factory.AppendToBlock(factory.NewCompoundAssignment().SetAssignee(structPointer).SetLeft(structPointer).SetRight(factory.NewLiteral().SetValue(strconv.Itoa(heapIndex))).SetOperator("+"))
+
+	// SP = heap[SP]
+	factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(factory.NewHeapIndexed().SetIndex(structPointer)))
+
+	var newScope *BaseScope
+
+	if IsPrimitiveType(prop.Type) {
+		return nil
+	}
+
+	// search for its scope
+	if utils.IsVectorType(prop.Type) {
+		newScope = DefaultVectorScope
+	}
+
+	// TODO: get struct scope
+
+	return s.searchObjectFunction(structPointer, newScope, strings.Join(patternParts[1:], "."))
+}
 
 // TODO: NewStruct
 // TODO: GetStruct
@@ -92,11 +308,10 @@ type ScopeTrace struct {
 	Correlative   int
 	FrameRelative bool
 	ParamOffset   int
+	Factory       *tac.TACFactory
 }
 
 func NewGlobalScope(trace *ScopeTrace) *BaseScope {
-	// TODO: register built-in functions
-
 	initialFuncs := make(map[string]*Function)
 	initialFuncs["print"] = &Function{
 		Name: "print",
@@ -193,16 +408,26 @@ func (s *ScopeTrace) GetFunction(name string) *Function {
 	return s.CurrentScope.GetFunction(name)
 }
 
-func NewScopeTrace(frameRelative bool, paramOffset int) *ScopeTrace {
+func NewScopeTrace(frameRelative bool, paramOffset int, factory *tac.TACFactory) *ScopeTrace {
 	trace := &ScopeTrace{
 		GlobalScope:   nil,
 		CurrentScope:  nil,
 		Correlative:   0,
 		FrameRelative: frameRelative,
 		ParamOffset:   paramOffset,
+		Factory:       factory,
 	}
 	globalScope := NewGlobalScope(trace)
 	trace.GlobalScope = globalScope
 	trace.CurrentScope = globalScope
 	return trace
+}
+
+func IsPrimitiveType(t string) bool {
+	switch t {
+	case IVOR_BOOL, IVOR_INT, IVOR_FLOAT, IVOR_STRING, IVOR_NIL, IVOR_CHARACTER:
+		return true
+	default:
+		return false
+	}
 }
