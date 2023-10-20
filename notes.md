@@ -1,3 +1,5 @@
+<!-- TODO: heap and stack pointer auto increase -->
+
 
 3 address code = 3AC = TAC
 

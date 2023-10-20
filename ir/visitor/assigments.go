@@ -102,9 +102,3 @@ func (v *IrVisitor) VisitArithmeticAssign(ctx *compiler.ArithmeticAssignContext)
 
 	return v.GetNilVW()
 }
-
-func (v *IrVisitor) VisitVectorAssign(ctx *compiler.VectorAssignContext) interface{} {
-
-	// TODO:
-	return nil
-}
