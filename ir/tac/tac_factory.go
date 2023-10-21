@@ -1,6 +1,7 @@
 package tac
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -156,6 +157,27 @@ func (f *TACFactory) registerBuiltins() {
 		f.OutBlock = append(f.OutBlock, f.VectorRemoveBuiltIn())
 	}
 
+	if f.RegisteredBuiltins["__string_to_int"] != nil {
+		f.OutBlock = append(f.OutBlock, f.StringToIntBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__string_to_float"] != nil {
+		f.OutBlock = append(f.OutBlock, f.StringToFloatBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__int_to_string"] != nil {
+		f.OutBlock = append(f.OutBlock, f.IntToStringBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__float_to_string"] != nil {
+		f.OutBlock = append(f.OutBlock, f.FloatToStringBuiltIn())
+	}
+
+	if f.RegisteredBuiltins["__bool_to_string"] != nil {
+		f.OutBlock = append(f.OutBlock, f.BoolToStringBuiltIn())
+	}
+
+	fmt.Println(f.RegisteredBuiltins)
 }
 
 func (s *TACFactory) GetBuiltinParams(name string) []*Temp {

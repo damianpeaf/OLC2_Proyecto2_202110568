@@ -80,11 +80,17 @@ func (c *CompoundAssignment) SetRightCast(cast string) *CompoundAssignment {
 // ** SimpleAssignment
 type SimpleAssignment struct {
 	TACAssigment
-	Val SimpleValue
+	Val  SimpleValue
+	cast string
 }
 
 func (s *SimpleAssignment) String() string {
-	return s.Assignee.String() + " = " + s.Val.String() + ";"
+	c := ""
+	if s.cast != "" {
+		c = "(" + s.cast + ")"
+	}
+
+	return s.Assignee.String() + " = " + c + " " + s.Val.String() + ";"
 }
 
 // builder utils
@@ -96,6 +102,11 @@ func (s *SimpleAssignment) SetVal(val SimpleValue) *SimpleAssignment {
 
 func (s *SimpleAssignment) SetAssignee(assignee SimpleValue) *SimpleAssignment {
 	s.Assignee = assignee
+	return s
+}
+
+func (s *SimpleAssignment) SetCast(cast string) *SimpleAssignment {
+	s.cast = cast
 	return s
 }
 

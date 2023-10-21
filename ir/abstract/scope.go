@@ -317,6 +317,18 @@ func NewGlobalScope(trace *ScopeTrace) *BaseScope {
 		Name: "print",
 		Type: BUILTIN_FUNCTION,
 	}
+	initialFuncs["Int"] = &Function{
+		Name: "Int",
+		Type: BUILTIN_FUNCTION,
+	}
+	initialFuncs["Float"] = &Function{
+		Name: "Float",
+		Type: BUILTIN_FUNCTION,
+	}
+	initialFuncs["String"] = &Function{
+		Name: "String",
+		Type: BUILTIN_FUNCTION,
+	}
 
 	return &BaseScope{
 		Name:       "global",
