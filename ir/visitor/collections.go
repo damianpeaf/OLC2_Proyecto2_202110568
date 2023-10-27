@@ -22,6 +22,8 @@ type MatrixItemReference struct {
 
 func (v *IrVisitor) saveVectorSize(temp *tac.Temp, size int) {
 	// - this can be optimized
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(v.Factory.NewHeapPtr()))
+	v.Utility.IncreaseHeapPtr()
 	heapAddres := v.Factory.NewHeapIndexed().SetIndex(temp)
 	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(heapAddres).SetVal(v.Factory.NewLiteral().SetValue(strconv.Itoa(size))))
 }
@@ -36,12 +38,9 @@ func (v *IrVisitor) saveVectorItems(items []*value.ValueWrapper) {
 }
 
 func (v *IrVisitor) VisitVectorItemList(ctx *compiler.VectorItemListContext) interface{} {
-	// save start direction on heap
-	temp := v.Factory.NewTemp()
-	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(v.Factory.NewHeapPtr()))
-	v.Utility.IncreaseHeapPtr()
 
 	var vectorItems []*value.ValueWrapper
+	temp := v.Factory.NewTemp()
 
 	if len(ctx.AllExpr()) == 0 {
 		v.saveVectorSize(temp, 0)
@@ -55,8 +54,9 @@ func (v *IrVisitor) VisitVectorItemList(ctx *compiler.VectorItemListContext) int
 		vectorItems = append(vectorItems, v.Visit(item).(*value.ValueWrapper))
 	}
 
-	// save on heap
+	// save start direction on heap
 	v.saveVectorSize(temp, len(vectorItems))
+	// save on heap
 	v.saveVectorItems(vectorItems)
 
 	var itemType = abstract.IVOR_NIL
