@@ -25,6 +25,13 @@ func RemoveBrackets(s string) string {
 	return strings.Trim(s, "[]")
 }
 
+func RemoveOneLevelOfBrackets(s string) string {
+	if strings.HasPrefix(s, "[") && strings.HasSuffix(s, "]") && len(s) >= 4 {
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
 func IsMatrixType(_type string) bool {
 
 	// Matrix starts with AT LEAST two [[ and ends with at least two ]]

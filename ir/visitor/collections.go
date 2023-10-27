@@ -1,6 +1,7 @@
 package visitor
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
@@ -90,7 +91,7 @@ func (v *IrVisitor) VisitVectorItem(ctx *compiler.VectorItemContext) interface{}
 		structType = abstract.IVOR_MATRIX
 	}
 
-	indexes := []*value.ValueWrapper{index}
+	indexes := []*value.ValueWrapper{}
 
 	for _, expr := range ctx.AllExpr() {
 
@@ -120,10 +121,12 @@ func (v *IrVisitor) VisitVectorItem(ctx *compiler.VectorItemContext) interface{}
 }
 
 func (v *IrVisitor) VisitVectorProp(ctx *compiler.VectorPropContext) interface{} {
+	// TODO: implement
 	return v.GetNilVW()
 }
 
 func (v *IrVisitor) VisitVectorFunc(ctx *compiler.VectorFuncContext) interface{} {
+	// TODO: implement
 	return v.GetNilVW()
 }
 
@@ -132,6 +135,7 @@ func (v *IrVisitor) VisitVector_type(ctx *compiler.Vector_typeContext) interface
 }
 
 func (v *IrVisitor) VisitVectorAssign(ctx *compiler.VectorAssignContext) interface{} {
+	// TODO: implement
 	panic("implement me :(")
 	// return v.GetNilVW()
 }
@@ -148,57 +152,81 @@ func (v *IrVisitor) VisitVectorItemExp(ctx *compiler.VectorItemExpContext) inter
 	switch itemRef := v.Visit(ctx.Vector_item()).(type) {
 	case *VectorItemReference:
 
-		endLabel := v.Factory.NewLabel()
-		errorLabel := v.Factory.NewLabel()
-
 		itemTemp := v.Factory.NewTemp()
-		relativeAddress := itemRef.Index.Val
-
 		offset := itemRef.Vector.GetStackStmt(v.Factory) // stack[variable]
 		offsetTemp := v.Factory.NewTemp()
 		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(offsetTemp).SetVal(offset)) // t = stack[variable]
+		return v.GetVectorvalue(itemTemp, offsetTemp, itemRef.Index, itemRef.Vector.Type)
+	case *MatrixItemReference:
 
-		// check size
-		size := v.Factory.NewTemp()
-		// size = heap[t]
-		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(size).SetVal(v.Factory.NewHeapIndexed().SetIndex(offsetTemp)))
+		itemTemp := v.Factory.NewTemp()
+		offset := itemRef.Matrix.GetStackStmt(v.Factory) // stack[variable]
+		offsetTemp := v.Factory.NewTemp()
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(offsetTemp).SetVal(offset)) // t = stack[variable]
+		_type := itemRef.Matrix.Type
 
-		//  relativeAddress >= size
-		condition := v.Factory.NewBoolExpression().SetLeft(relativeAddress).SetRight(size).SetOp(tac.GTE).SetLeftCast("int")
-		v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(errorLabel))
+		fmt.Println("MATRIX ITEM REFERENCE")
+		fmt.Println(itemRef.Indexes)
+		fmt.Println("MATRIX ITEM REFERENCE")
 
-		// if relativeAddress < 0
-		condition = v.Factory.NewBoolExpression().SetLeft(relativeAddress).SetRight(v.Factory.NewLiteral().SetValue("0")).SetOp(tac.LT).SetLeftCast("int")
-		v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(errorLabel))
-
-		// increase offset by 1, to skip size
-		v.Factory.AppendToBlock(v.Factory.NewCompoundAssignment().SetAssignee(offsetTemp).SetLeft(offsetTemp).SetRight(v.Factory.NewLiteral().SetValue("1")).SetOperator("+"))
-
-		absoluteAddress := v.Factory.NewTemp()
-		v.Factory.AppendToBlock(v.Factory.NewCompoundAssignment().SetAssignee(absoluteAddress).SetLeft(relativeAddress).SetRight(offsetTemp).SetOperator("+"))
-		// absoluteAddress = relativeAddress + offsetTemp
-
-		heapIndexed := v.Factory.NewHeapIndexed().SetIndex(absoluteAddress)
-		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(itemTemp).SetVal(heapIndexed))
-
-		v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(endLabel))
-
-		v.Factory.AppendToBlock(errorLabel)
-
-		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(itemTemp).SetVal(v.GetNilVW().Val))
-		v.Factory.AppendBlock(v.Utility.PrintStringStream("BoundsError\n"))
-
-		v.Factory.AppendToBlock(endLabel)
+		for _, index := range itemRef.Indexes {
+			vw := v.GetVectorvalue(itemTemp, offsetTemp, index, _type)
+			// assign itemTemp to offsetTemp
+			v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(offsetTemp).SetVal(vw.Val))
+			_type = vw.Metadata
+		}
 
 		return &value.ValueWrapper{
 			Val:      itemTemp,
-			Metadata: utils.RemoveBrackets(itemRef.Vector.Type),
+			Metadata: _type,
 		}
-	case *MatrixItemReference:
-		// TODO: implement
 	}
 
 	return v.GetNilVW()
+}
+
+func (v *IrVisitor) GetVectorvalue(itemTemp, offsetTemp *tac.Temp, index *value.ValueWrapper, _type string) *value.ValueWrapper {
+
+	endLabel := v.Factory.NewLabel()
+	errorLabel := v.Factory.NewLabel()
+	relativeAddress := index.Val
+
+	// check size
+	size := v.Factory.NewTemp()
+	// size = heap[t]
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(size).SetVal(v.Factory.NewHeapIndexed().SetIndex(offsetTemp)))
+
+	//  relativeAddress >= size
+	condition := v.Factory.NewBoolExpression().SetLeft(relativeAddress).SetRight(size).SetOp(tac.GTE).SetLeftCast("int")
+	v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(errorLabel))
+
+	// if relativeAddress < 0
+	condition = v.Factory.NewBoolExpression().SetLeft(relativeAddress).SetRight(v.Factory.NewLiteral().SetValue("0")).SetOp(tac.LT).SetLeftCast("int")
+	v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(errorLabel))
+
+	// increase offset by 1, to skip size
+	v.Factory.AppendToBlock(v.Factory.NewCompoundAssignment().SetAssignee(offsetTemp).SetLeft(offsetTemp).SetRight(v.Factory.NewLiteral().SetValue("1")).SetOperator("+"))
+
+	absoluteAddress := v.Factory.NewTemp()
+	v.Factory.AppendToBlock(v.Factory.NewCompoundAssignment().SetAssignee(absoluteAddress).SetLeft(relativeAddress).SetRight(offsetTemp).SetOperator("+"))
+	// absoluteAddress = relativeAddress + offsetTemp
+
+	heapIndexed := v.Factory.NewHeapIndexed().SetIndex(absoluteAddress)
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(itemTemp).SetVal(heapIndexed))
+
+	v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(endLabel))
+
+	v.Factory.AppendToBlock(errorLabel)
+
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(itemTemp).SetVal(v.GetNilVW().Val))
+	v.Factory.AppendBlock(v.Utility.PrintStringStream("BoundsError\n"))
+
+	v.Factory.AppendToBlock(endLabel)
+
+	return &value.ValueWrapper{
+		Val:      itemTemp,
+		Metadata: utils.RemoveOneLevelOfBrackets(_type),
+	}
 }
 
 func (v *IrVisitor) VisitVectorFuncExp(ctx *compiler.VectorFuncExpContext) interface{} {
