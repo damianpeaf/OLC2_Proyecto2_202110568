@@ -21,12 +21,12 @@ type MatrixItemReference struct {
 	Indexes []*value.ValueWrapper
 }
 
-func (v *IrVisitor) saveVectorSize(temp *tac.Temp, size int) {
+func (v *IrVisitor) saveVectorSize(temp *tac.Temp, size tac.SimpleValue) {
 	// - this can be optimized
 	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(v.Factory.NewHeapPtr()))
 	v.Utility.IncreaseHeapPtr()
 	heapAddres := v.Factory.NewHeapIndexed().SetIndex(temp)
-	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(heapAddres).SetVal(v.Factory.NewLiteral().SetValue(strconv.Itoa(size))))
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(heapAddres).SetVal(size))
 }
 
 func (v *IrVisitor) saveVectorItems(items []*value.ValueWrapper) {
@@ -44,7 +44,8 @@ func (v *IrVisitor) VisitVectorItemList(ctx *compiler.VectorItemListContext) int
 	temp := v.Factory.NewTemp()
 
 	if len(ctx.AllExpr()) == 0 {
-		v.saveVectorSize(temp, 0)
+		size := v.Factory.NewLiteral().SetValue("0")
+		v.saveVectorSize(temp, size)
 		return &value.ValueWrapper{
 			Val:      temp,
 			Metadata: "[]",
@@ -56,7 +57,8 @@ func (v *IrVisitor) VisitVectorItemList(ctx *compiler.VectorItemListContext) int
 	}
 
 	// save start direction on heap
-	v.saveVectorSize(temp, len(vectorItems))
+	size := v.Factory.NewLiteral().SetValue(strconv.Itoa(len(vectorItems)))
+	v.saveVectorSize(temp, size)
 	// save on heap
 	v.saveVectorItems(vectorItems)
 
@@ -249,4 +251,75 @@ func (v *IrVisitor) VisitStructVector(ctx *compiler.StructVectorContext) interfa
 	// }
 
 	// return NewVectorValue(make([]value.IVOR, 0), "["+_type+"]", _type)
+}
+
+func (v *IrVisitor) VisitRepeating(ctx *compiler.RepeatingContext) interface{} {
+
+	if ctx.ID(0).GetText() != "repeating" {
+		return v.GetNilVW()
+	}
+
+	if ctx.ID(1).GetText() != "count" {
+		return v.GetNilVW()
+	}
+
+	reapeating_val := v.Visit(ctx.Expr(0)).(*value.ValueWrapper)
+	count_val := v.Visit(ctx.Expr(1)).(*value.ValueWrapper)
+
+	if count_val.Metadata != abstract.IVOR_INT {
+		return v.GetNilVW()
+	}
+
+	_type := ""
+
+	if ctx.Vector_type() != nil {
+		_type = ctx.Vector_type().GetText()
+		primitive_type := utils.RemoveBrackets(_type)
+
+		if primitive_type != reapeating_val.Metadata {
+			return v.GetNilVW()
+		}
+	} else if ctx.Matrix_type() != nil {
+
+		_type = ctx.Matrix_type().GetText()
+
+		if !(utils.IsMatrixType(reapeating_val.Metadata) || utils.IsVectorType(reapeating_val.Metadata)) {
+			return v.GetNilVW()
+		}
+	}
+
+	// save the size (count)
+	vectAddress := v.Factory.NewTemp()
+	v.saveVectorSize(vectAddress, count_val.Val)
+
+	// save the items
+	count := v.Factory.NewTemp()
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(count).SetVal(v.Factory.NewLiteral().SetValue("0")))
+	loopLabel := v.Factory.NewLabel()
+	endLabel := v.Factory.NewLabel()
+
+	v.Factory.AppendToBlock(loopLabel)
+
+	condition := v.Factory.NewBoolExpression().SetLeft(count).SetRight(count_val.Val).SetOp(tac.GTE).SetLeftCast("int")
+	v.Factory.AppendToBlock(v.Factory.NewConditionalJump().SetCondition(condition).SetTarget(endLabel))
+
+	heapAddres := v.Factory.NewHeapIndexed().SetIndex(v.Factory.NewHeapPtr())
+	// ? if the val is a vector or matrix, we need to copy it. But i dont give a fuck
+	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(heapAddres).SetVal(reapeating_val.Val)) // ! <--
+	v.Utility.IncreaseHeapPtr()
+
+	v.Factory.AppendToBlock(v.Factory.NewCompoundAssignment().SetAssignee(count).SetLeft(count).SetRight(v.Factory.NewLiteral().SetValue("1")).SetOperator("+"))
+
+	v.Factory.AppendToBlock(v.Factory.NewUnconditionalJump().SetTarget(loopLabel))
+
+	v.Factory.AppendToBlock(endLabel)
+
+	return &value.ValueWrapper{
+		Val:      vectAddress,
+		Metadata: _type,
+	}
+}
+
+func (v *IrVisitor) VisitRepeatingExp(ctx *compiler.RepeatingExpContext) interface{} {
+	return v.Visit(ctx.Repeating())
 }

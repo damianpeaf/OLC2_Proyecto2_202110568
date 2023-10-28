@@ -205,10 +205,6 @@ func (v *IrVisitor) VectorRemoveLast(funcObj *abstract.Function, args []*abstrac
 		return v.GetNilVW()
 	}
 
-	if args[0].Name != "at" {
-		return v.GetNilVW()
-	}
-
 	params := v.Factory.GetBuiltinParams("__vector_remove_last")
 	vectorParam := params[0]
 
@@ -222,6 +218,9 @@ func (v *IrVisitor) VectorRemoveLast(funcObj *abstract.Function, args []*abstrac
 
 func (v *IrVisitor) VectorRemove(funcObj *abstract.Function, args []*abstract.Argument) *value.ValueWrapper {
 	if len(args) != 1 {
+		return v.GetNilVW()
+	}
+	if args[0].Name != "at" {
 		return v.GetNilVW()
 	}
 	params := v.Factory.GetBuiltinParams("__vector_remove")
