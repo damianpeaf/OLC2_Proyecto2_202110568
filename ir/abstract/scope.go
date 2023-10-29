@@ -7,6 +7,7 @@ import (
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/utils"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
 // ***** BASE SCOPE *****
@@ -16,8 +17,9 @@ type BaseScope struct {
 	Children   []*BaseScope
 	Variables  map[string]*IVOR
 	Functions  map[string]*Function
+	Structs    map[string]*BaseScope
 	ScopeTrace *ScopeTrace
-	innerOrder int // TODO: need to find a way to reset this for recursive functions
+	innerOrder int
 }
 
 func (s *BaseScope) AddChild(child *BaseScope) {
@@ -40,6 +42,18 @@ func (s *BaseScope) NewVariable(name string, _type string) {
 		Address:       s.ScopeTrace.Correlative,
 		FrameRelative: s.ScopeTrace.FrameRelative,
 		Offset:        offset,
+	}
+	s.ScopeTrace.Correlative++
+}
+
+func (s *BaseScope) NewProp(name, _type string, defaultValue *value.ValueWrapper) {
+	s.Variables[name] = &IVOR{
+		Name:          name,
+		Type:          _type,
+		Address:       s.ScopeTrace.Correlative,
+		FrameRelative: false,
+		Offset:        -1,
+		DefaultValue:  defaultValue,
 	}
 	s.ScopeTrace.Correlative++
 }
@@ -68,8 +82,10 @@ func (s *BaseScope) GetVariable(pattern string) *IVOR {
 		// search for its scope
 		if utils.IsVectorType(mainObj.Type) {
 			scope = DefaultVectorScope
+		} else {
+			scope = s.GetStruct(mainObj.Type)
 		}
-		// TODO: get struct scope
+
 		factory := s.ScopeTrace.Factory
 		structPointer := factory.NewTemp()
 		factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(mainObj.GetStackStmt(factory)))
@@ -85,6 +101,15 @@ func (s *BaseScope) GetVariable(pattern string) *IVOR {
 			return aux.Variables[pattern]
 		}
 		aux = aux.Parent
+	}
+	return nil
+}
+
+func (s *BaseScope) GetByAddress(address int) *IVOR {
+	for _, v := range s.Variables {
+		if v.Address == address {
+			return v
+		}
 	}
 	return nil
 }
@@ -105,7 +130,7 @@ func (s *BaseScope) searchObjectProp(structPointer *tac.Temp, scope *BaseScope, 
 				Address:       -1,
 				FrameRelative: false,
 				Offset:        -1,
-				Temp:          structPointer,
+				ValueTemp:     structPointer,
 			}
 
 		case "isEmpty":
@@ -135,7 +160,7 @@ func (s *BaseScope) searchObjectProp(structPointer *tac.Temp, scope *BaseScope, 
 				Address:       -1,
 				FrameRelative: false,
 				Offset:        -1,
-				Temp:          computation,
+				ValueTemp:     computation,
 			}
 
 		default:
@@ -154,6 +179,10 @@ func (s *BaseScope) searchObjectProp(structPointer *tac.Temp, scope *BaseScope, 
 	// SP = SP + prop.offset
 	factory.AppendToBlock(factory.NewCompoundAssignment().SetAssignee(structPointer).SetLeft(structPointer).SetRight(factory.NewLiteral().SetValue(strconv.Itoa(heapIndex))).SetOperator("+"))
 
+	addressTemp := factory.NewTemp()
+	// AT = SP
+	factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(addressTemp).SetVal(structPointer)) // ! <-- This is fucked up xd
+
 	// SP = heap[SP]
 	factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(factory.NewHeapIndexed().SetIndex(structPointer)))
 
@@ -165,7 +194,8 @@ func (s *BaseScope) searchObjectProp(structPointer *tac.Temp, scope *BaseScope, 
 			Address:       -1,
 			FrameRelative: false,
 			Offset:        -1,
-			Temp:          structPointer,
+			ValueTemp:     structPointer,
+			AddressTemp:   addressTemp,
 		}
 	}
 
@@ -178,9 +208,9 @@ func (s *BaseScope) searchObjectProp(structPointer *tac.Temp, scope *BaseScope, 
 	// search for its scope
 	if utils.IsVectorType(prop.Type) {
 		newScope = DefaultVectorScope
+	} else {
+		newScope = s.GetStruct(prop.Type)
 	}
-
-	// TODO: get struct scope
 
 	return s.searchObjectProp(structPointer, newScope, strings.Join(patternParts[1:], "."))
 }
@@ -209,9 +239,9 @@ func (s *BaseScope) GetFunction(name string) *Function {
 		// search for its scope
 		if utils.IsVectorType(mainObj.Type) {
 			scope = DefaultVectorScope
+		} else {
+			scope = s.GetStruct(mainObj.Type)
 		}
-
-		// TODO: get struct scope
 		factory := s.ScopeTrace.Factory
 		structPointer := factory.NewTemp()
 		factory.AppendToBlock(factory.NewSimpleAssignment().SetAssignee(structPointer).SetVal(mainObj.GetStackStmt(factory)))
@@ -285,15 +315,20 @@ func (s *BaseScope) searchObjectFunction(structPointer *tac.Temp, scope *BaseSco
 	// search for its scope
 	if utils.IsVectorType(prop.Type) {
 		newScope = DefaultVectorScope
+	} else {
+		newScope = s.GetStruct(prop.Type)
 	}
-
-	// TODO: get struct scope
 
 	return s.searchObjectFunction(structPointer, newScope, strings.Join(patternParts[1:], "."))
 }
 
-// TODO: NewStruct
-// TODO: GetStruct
+func (s *BaseScope) NewStruct(name string, trace *ScopeTrace) {
+	s.Structs[name] = trace.GlobalScope
+}
+
+func (s *BaseScope) GetStruct(name string) *BaseScope {
+	return s.Structs[name]
+}
 
 func (s *BaseScope) Reset() {
 	s.Variables = make(map[string]*IVOR)
@@ -335,6 +370,7 @@ func NewGlobalScope(trace *ScopeTrace) *BaseScope {
 		Variables:  make(map[string]*IVOR),
 		Functions:  initialFuncs,
 		Children:   make([]*BaseScope, 0),
+		Structs:    make(map[string]*BaseScope),
 		Parent:     nil,
 		ScopeTrace: trace,
 	}
@@ -346,6 +382,7 @@ func NewLocalScope(name string, trace *ScopeTrace) *BaseScope {
 		Variables:  make(map[string]*IVOR),
 		Functions:  make(map[string]*Function),
 		Children:   make([]*BaseScope, 0),
+		Structs:    make(map[string]*BaseScope),
 		Parent:     nil,
 		ScopeTrace: trace,
 	}
@@ -406,6 +443,10 @@ func (s *ScopeTrace) Reset() {
 
 func (s *ScopeTrace) NewVariable(name string, _type string) {
 	s.CurrentScope.NewVariable(name, _type)
+}
+
+func (s *ScopeTrace) NewProp(name, _type string, defaultValue *value.ValueWrapper) {
+	s.CurrentScope.NewProp(name, _type, defaultValue)
 }
 
 func (s *ScopeTrace) GetVariable(pattern string) *IVOR {

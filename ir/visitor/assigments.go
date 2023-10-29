@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/tac"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/value"
 )
 
@@ -56,8 +57,18 @@ func (v *IrVisitor) VisitDirectAssign(ctx *compiler.DirectAssignContext) interfa
 		// TODO: copy object ifs is a struct or vector
 
 		// assign
-		stackAddress := variable.GetStackStmt(v.Factory)
-		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(stackAddress).SetVal(varValue.Val))
+		var finalAddress tac.SimpleValue
+		clue := variable.GetStackStmt(v.Factory)
+
+		if _, ok := clue.(*tac.Temp); ok {
+			// then is a heap address
+			finalAddress = v.Factory.NewHeapIndexed().SetIndex(variable.AddressTemp)
+		} else {
+			// then is a stack address
+			finalAddress = clue
+		}
+
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(finalAddress).SetVal(varValue.Val))
 	}
 
 	return nil

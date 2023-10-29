@@ -12,13 +12,23 @@ import (
 
 // * FUNC CALL
 
+func IsArgValidForStruct(arg []*abstract.Argument) bool {
+	for _, a := range arg {
+
+		if a.Name == "" {
+			return false
+		}
+	}
+	return true
+}
+
 func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 
 	// find if its a func or constructor of a struct
 
 	canditateName := ctx.Id_pattern().GetText()
 	funcObj := v.ScopeTrace.GetFunction(canditateName)
-	// structObj, msg2 := v.ScopeTrace.GlobalScope.GetStruct(canditateName)
+	structObj := v.ScopeTrace.GlobalScope.GetStruct(canditateName)
 
 	args := make([]*abstract.Argument, 0)
 	if ctx.Arg_list() != nil {
@@ -29,14 +39,13 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 	fmt.Println("obj: ", funcObj)
 
 	// struct has priority over func
-	// if structObj != nil {
-	// 	if IsArgValidForStruct(args) {
-	// 		return NewObjectValue(v, canditateName, ctx.Id_pattern().GetStart(), args, false)
-	// 	} else {
-	// 		v.ErrorTable.NewSemanticError(ctx.GetStart(), "Si bien "+canditateName+" es un struct, no se puede llamar a su constructor con los argumentos especificados. Ni tampoco es una funcion.")
-	// 		return value.DefaultNilValue
-	// 	}
-	// }
+	if structObj != nil {
+		if IsArgValidForStruct(args) {
+			return v.BuildStruct(canditateName, structObj, args)
+		} else {
+			return v.GetNilVW()
+		}
+	}
 
 	if funcObj == nil {
 		return v.GetNilVW()

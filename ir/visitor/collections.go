@@ -122,16 +122,6 @@ func (v *IrVisitor) VisitVectorItem(ctx *compiler.VectorItemContext) interface{}
 	return v.GetNilVW()
 }
 
-func (v *IrVisitor) VisitVectorProp(ctx *compiler.VectorPropContext) interface{} {
-	// TODO: implement
-	return v.GetNilVW()
-}
-
-func (v *IrVisitor) VisitVectorFunc(ctx *compiler.VectorFuncContext) interface{} {
-	// TODO: implement
-	return v.GetNilVW()
-}
-
 func (v *IrVisitor) VisitVector_type(ctx *compiler.Vector_typeContext) interface{} {
 	return ctx.GetText()
 }
@@ -140,14 +130,6 @@ func (v *IrVisitor) VisitVectorAssign(ctx *compiler.VectorAssignContext) interfa
 	// TODO: implement
 	panic("implement me :(")
 	// return v.GetNilVW()
-}
-
-func (v *IrVisitor) VisitStructVectorExp(ctx *compiler.StructVectorExpContext) interface{} {
-	return v.Visit(ctx.Struct_vector())
-}
-
-func (v *IrVisitor) VisitVectorPropExp(ctx *compiler.VectorPropExpContext) interface{} {
-	return v.Visit(ctx.Vector_prop())
 }
 
 func (v *IrVisitor) VisitVectorItemExp(ctx *compiler.VectorItemExpContext) interface{} {
@@ -229,28 +211,6 @@ func (v *IrVisitor) GetVectorvalue(itemTemp, offsetTemp *tac.Temp, index *value.
 		Val:      itemTemp,
 		Metadata: utils.RemoveOneLevelOfBrackets(_type),
 	}
-}
-
-func (v *IrVisitor) VisitVectorFuncExp(ctx *compiler.VectorFuncExpContext) interface{} {
-	return v.Visit(ctx.Vector_func())
-}
-
-func (v *IrVisitor) VisitVectorExp(ctx *compiler.VectorExpContext) interface{} {
-	return v.Visit(ctx.Vector_expr())
-}
-
-func (v *IrVisitor) VisitStructVector(ctx *compiler.StructVectorContext) interface{} {
-	panic("implement structs, and then implement me :(")
-	// _type := ctx.ID().GetText()
-
-	// stc, msg := v.ScopeTrace.GlobalScope.GetStruct(_type)
-
-	// if stc == nil {
-	// 	v.ErrorTable.NewSemanticError(ctx.GetStart(), msg)
-	// 	return value.DefaultNilValue
-	// }
-
-	// return NewVectorValue(make([]value.IVOR, 0), "["+_type+"]", _type)
 }
 
 func (v *IrVisitor) VisitRepeating(ctx *compiler.RepeatingContext) interface{} {

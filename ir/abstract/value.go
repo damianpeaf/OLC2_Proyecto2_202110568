@@ -33,15 +33,17 @@ type IVOR struct {
 	Address       int
 	FrameRelative bool
 	Offset        int
-	Temp          *tac.Temp // refers to the temp that holds the value, probably in the heap
+	ValueTemp     *tac.Temp // refers to the temp that holds the value, probably in the heap
+	AddressTemp   *tac.Temp // refers to the temp that holds the address, probably in the stack
+	DefaultValue  *value.ValueWrapper
 	// Copy() IVOR // ? it would be interesting
 }
 
 func (i *IVOR) GetStackStmt(f *tac.TACFactory) tac.SimpleValue {
 	// this method should be called GetValue or something, but i dont care
 
-	if i.Temp != nil {
-		return i.Temp
+	if i.ValueTemp != nil {
+		return i.ValueTemp
 	}
 
 	index := i.GetStackIndex(f)
