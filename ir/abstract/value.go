@@ -36,6 +36,7 @@ type IVOR struct {
 	ValueTemp     *tac.Temp // refers to the temp that holds the value, probably in the heap
 	AddressTemp   *tac.Temp // refers to the temp that holds the address, probably in the stack
 	DefaultValue  *value.ValueWrapper
+	Pointer       bool
 	// Copy() IVOR // ? it would be interesting
 }
 
@@ -61,6 +62,11 @@ func (i *IVOR) GetStackIndex(f *tac.TACFactory) tac.SimpleValue {
 		// addressComputation := f.NewCompoundAssignment().SetAssignee(index).SetLeft(f.GetFramePointer()).SetRight(f.NewLiteral().SetValue(strconv.Itoa(i.Address + i.Offset))).SetLeftCast("int").SetRightCast("int").SetOperator("+")
 		addressComputation := f.NewCompoundAssignment().SetAssignee(index).SetLeft(f.GetFramePointer()).SetRight(f.NewLiteral().SetValue(strconv.Itoa(i.Address + i.Offset))).SetOperator("+")
 		f.AppendToBlock(addressComputation)
+
+		if i.Pointer {
+			realLoc := f.NewSimpleAssignment().SetAssignee(index).SetVal(f.NewStackIndexed().SetIndex(index))
+			f.AppendToBlock(realLoc)
+		}
 	}
 
 	return index

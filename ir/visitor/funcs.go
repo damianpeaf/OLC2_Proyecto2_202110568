@@ -114,11 +114,15 @@ func (v *IrVisitor) SetParamsOnFrame(funcObj *abstract.Function, args []*abstrac
 		argVar := v.ScopeTrace.GetVariable(param.InnerName)
 		arg := argsMap[param.InnerName]
 
+		wasPointer := argVar.Pointer
+		argVar.Pointer = false // just for the assign
+
 		// assign the value to the variable
 		stackAddress := argVar.GetStackStmt(v.Factory)
 		assign := v.Factory.NewSimpleAssignment().SetAssignee(stackAddress).SetVal(arg.Wrapper.Val)
 		v.Factory.AppendToBlock(assign)
 
+		argVar.Pointer = wasPointer
 	}
 	v.ScopeTrace.CurrentScope = prevScope
 }
@@ -140,6 +144,10 @@ func (v *IrVisitor) VisitFuncArg(ctx *compiler.FuncArgContext) interface{} {
 	argName := ""
 	passByReference := false
 
+	if ctx.ANPERSAND() != nil {
+		passByReference = true
+	}
+
 	var argValue *value.ValueWrapper = v.GetNilVW()
 	var argVariableRef *abstract.IVOR = nil
 
@@ -150,7 +158,14 @@ func (v *IrVisitor) VisitFuncArg(ctx *compiler.FuncArgContext) interface{} {
 
 		if argVariableRef != nil {
 			temp := v.Factory.NewTemp()
-			stackAddress := argVariableRef.GetStackStmt(v.Factory)
+			var stackAddress tac.SimpleValue
+
+			if passByReference {
+				stackAddress = argVariableRef.GetStackIndex(v.Factory)
+			} else {
+				stackAddress = argVariableRef.GetStackStmt(v.Factory)
+			}
+
 			assign := v.Factory.NewSimpleAssignment().SetAssignee(temp).SetVal(stackAddress)
 			v.Factory.AppendToBlock(assign)
 			argValue = &value.ValueWrapper{
@@ -167,15 +182,10 @@ func (v *IrVisitor) VisitFuncArg(ctx *compiler.FuncArgContext) interface{} {
 		argName = ctx.ID().GetText()
 	}
 
-	if ctx.ANPERSAND() != nil {
-		passByReference = true
-	}
-
 	return &abstract.Argument{
 		Name:            argName,
 		Wrapper:         argValue,
 		PassByReference: passByReference,
-		//TODO:  VariableRefAddress:     ,
 	}
 
 }
@@ -291,6 +301,11 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 			FrameRelative: true,
 			Offset:        1, // just skip the header
 		}
+
+		if param.PassByReference {
+			paramVar.Pointer = true
+		}
+
 		staticScopeTrace.GlobalScope.DirectVariable(paramVar)
 	}
 
