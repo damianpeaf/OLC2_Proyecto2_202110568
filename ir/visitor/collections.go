@@ -283,3 +283,7 @@ func (v *IrVisitor) VisitRepeating(ctx *compiler.RepeatingContext) interface{} {
 func (v *IrVisitor) VisitRepeatingExp(ctx *compiler.RepeatingExpContext) interface{} {
 	return v.Visit(ctx.Repeating())
 }
+
+func (v *IrVisitor) VisitVectorExp(ctx *compiler.VectorExpContext) interface{} {
+	return v.Visit(ctx.Vector_expr())
+}
