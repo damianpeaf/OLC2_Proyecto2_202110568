@@ -82,6 +82,10 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 		// call function
 		v.Factory.AppendToBlock(v.Factory.NewMethodCall(funcObj.Name))
 
+		// save the return value on other temp
+		returnTemp := v.Factory.NewTemp()
+		v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(returnTemp).SetVal(funcObj.ReturnTemp))
+
 		/*
 			 	summary:
 				t1 = P // at this moment P is the next free space on stack (will be occupied by the prev_frame value)
@@ -91,7 +95,7 @@ func (v *IrVisitor) VisitFuncCall(ctx *compiler.FuncCallContext) interface{} {
 				func()
 		*/
 		return &value.ValueWrapper{
-			Val:      funcObj.ReturnTemp,
+			Val:      returnTemp,
 			Metadata: funcObj.ReturnType,
 		}
 	}
@@ -321,6 +325,10 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 	prevFrameStack := v.Factory.NewStackIndexed().SetIndex(v.Factory.GetFramePointer())                                     // stack[fp]
 	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(prevFrameTemp).SetVal(prevFrameStack))              // t1 = stack[fp]
 	v.Factory.AppendToBlock(v.Factory.NewSimpleAssignment().SetAssignee(v.Factory.GetFramePointer()).SetVal(prevFrameTemp)) // fp = t1
+
+	// life saver
+	lifesaver := tac.NewBlockLifesaver(&funcBlock, funcName, v.Factory, returnTemp, staticScopeTrace.Correlative+staticScopeTrace.ParamOffset+1)
+	lifesaver.EvalBlock()
 
 	// now we have to add the func tac obj to outer block
 	tacFunc := v.Factory.NewMethodDcl(funcBlock).SetName(funcName)

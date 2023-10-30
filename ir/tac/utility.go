@@ -23,7 +23,6 @@ func (u *Utility) SaveValOnStack(val SimpleValue) int {
 
 	address := u.factory.StackCurr
 	u.IncreaseStackPtr()
-
 	return address
 }
 
