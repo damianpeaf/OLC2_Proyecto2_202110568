@@ -926,7 +926,8 @@ func (v *ReplVisitor) VisitInnerWhile(ctx *compiler.WhileStmtContext, condition 
 	defer func() {
 
 		if item, ok := recover().(*CallStackItem); item != nil && ok {
-			// v.ScopeTrace.CurrentScope = whileScope // reset scope to while scope
+			// Note: i cant remebmer why i commented this line, or why exists in the first place. But it makes the scope to work
+			v.ScopeTrace.CurrentScope = whileScope // reset scope to while scope
 			// Not a while item, propagate panic
 			if item != whileItem {
 				panic(item)

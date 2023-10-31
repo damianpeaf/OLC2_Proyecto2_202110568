@@ -72,7 +72,7 @@ export const useTSwift = () => {
 
 
         const programInput = state.currentDocument.content
-        setTerminalContent('Ejecutando programa...')
+        setTerminalContent('Compilando programa...')
 
         // form-data
         const formData = new FormData()
@@ -107,7 +107,6 @@ export const useTSwift = () => {
         }
 
         // * Set terminal content
-        setTerminalContent(output)
 
         setC3DContent(c3d)
 
@@ -115,9 +114,11 @@ export const useTSwift = () => {
         // * Fire toast
         if (errors) {
             dispatch({ type: 'set-errors', payload: { errors } })
-            fireDangerToast('Programa ejecutado con errores')
+            fireDangerToast('Programa compilado con errores')
+            setTerminalContent('Programa compilado con errores')
         } else {
-            fireScucessToast('Programa ejecutado con éxito')
+            setTerminalContent('Programa compilado con éxito')
+            fireScucessToast('Programa compilado con éxito')
         }
     }
 

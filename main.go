@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/compiler"
-	// "github.com/damianpeaf/OLC2_Proyecto2_202110568/cst"
+	"github.com/damianpeaf/OLC2_Proyecto2_202110568/cst"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/errors"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/ir/visitor"
 	"github.com/damianpeaf/OLC2_Proyecto2_202110568/repl"
@@ -38,19 +38,19 @@ func main() {
 
 	app.Post("/compile", func(c *fiber.Ctx) error {
 
-		// defer func() {
-		// 	if r := recover(); r != nil {
-		// 		fmt.Println("Recovered in f", r)
-		// 	}
-		// }()
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Recovered in f", r)
+			}
+		}()
 
 		startTime := time.Now()
 
-		// resultChannel := make(chan string)
+		resultChannel := make(chan string)
 
-		// go func() {
-		// 	resultChannel <- cst.CstReport(c.FormValue("code"))
-		// }()
+		go func() {
+			resultChannel <- cst.CstReport(c.FormValue("code"))
+		}()
 
 		code := c.FormValue("code")
 
@@ -88,7 +88,7 @@ func main() {
 		irResult := irVisitor.Factory.String()
 		// fmt.Println(irResult)
 
-		// cstReport := <-resultChannel
+		cstReport := <-resultChannel
 
 		reportEndTime := time.Now()
 		fmt.Println("Interpretation finished")
@@ -104,9 +104,9 @@ func main() {
 			ScopeTrace repl.ReportTable `json:"scopeTrace"`
 			C3D        string           `json:"c3d"`
 		}{
-			Errors: replVisitor.ErrorTable.Errors,
-			Output: replVisitor.Console.GetOutput(),
-			// CSTSvg:     cstReport,
+			Errors:     replVisitor.ErrorTable.Errors,
+			Output:     replVisitor.Console.GetOutput(),
+			CSTSvg:     cstReport,
 			ScopeTrace: replVisitor.ScopeTrace.Report(),
 			C3D:        irResult,
 		})

@@ -498,6 +498,8 @@ func (s *BaseScope) Report() ReportScope {
 			line := 0
 			column := 0
 
+			// ver si ya estan registradas en el reporte
+
 			if function.Token != nil {
 				line = function.Token.GetLine()
 				column = function.Token.GetColumn()
@@ -526,6 +528,23 @@ func (s *BaseScope) Report() ReportScope {
 	}
 
 	for _, v := range s.children {
+
+		registered := false
+
+		// if the names start with "func:"
+		if strings.HasPrefix(v.name, "func:") {
+			for _, v2 := range reportScope.ChildScopes {
+				if v2.Name == v.name {
+					registered = true
+					break
+				}
+			}
+		}
+
+		if registered {
+			continue
+		}
+
 		reportScope.ChildScopes = append(reportScope.ChildScopes, v.Report())
 	}
 
