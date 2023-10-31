@@ -11,6 +11,7 @@ type Lifesaver struct {
 	table         *LifeSaverTable
 	factory       *TACFactory
 	initialOffest int
+	Reserve       int
 }
 
 type LifeSaverTable struct {
@@ -48,6 +49,8 @@ func (lst *LifeSaverTable) ReduceToCases() {
 		problematicEntries := make([]*LifeSaverTableEntry, 0)
 
 		if entry.appearanceType == "decl" {
+
+			var centinel TACStmtI
 			// search for its usage
 			for j := i + 1; j < len(lst.table); j++ {
 				if lst.table[j].appearanceType == "decl" && lst.table[j].temp == entry.temp {
@@ -60,8 +63,10 @@ func (lst *LifeSaverTable) ReduceToCases() {
 
 				if lst.table[j].appearanceType == "recursive" {
 					problematic = true
+					centinel = lst.table[j].stmt
 				}
 				if problematic && lst.table[j].appearanceType == "used" && lst.table[j].temp == entry.temp {
+					lst.table[j].centinel = centinel
 					problematicEntries = append(problematicEntries, lst.table[j])
 				}
 			}
@@ -102,15 +107,15 @@ func insertStmtsAfter(block *[]TACStmtI, stmts []TACStmtI, after TACStmtI) {
 	}
 }
 
-func insertStmtsBefore(block *[]TACStmtI, stmts []TACStmtI, before TACStmtI) {
+// func insertStmtsBefore(block *[]TACStmtI, stmts []TACStmtI, before TACStmtI) {
 
-	for i, stmt := range *block {
-		if stmt == before {
-			*block = append((*block)[:i], append(stmts, (*block)[i:]...)...)
-			break
-		}
-	}
-}
+// 	for i, stmt := range *block {
+// 		if stmt == before {
+// 			*block = append((*block)[:i], append(stmts, (*block)[i:]...)...)
+// 			break
+// 		}
+// 	}
+// }
 
 func (lst *Lifesaver) FixCases() {
 	for _, c := range lst.table.cases {
@@ -120,18 +125,16 @@ func (lst *Lifesaver) FixCases() {
 		offset := lst.factory.NewLiteral().SetValue(strconv.Itoa(lst.initialOffest))
 		getAddress := lst.factory.NewCompoundAssignment().SetAssignee(addressTemp).SetLeft(lst.factory._framePointer).SetRight(offset).SetOperator("+")
 		saveVal := lst.factory.NewSimpleAssignment().SetAssignee(lst.factory.NewStackIndexed().SetIndex(addressTemp)).SetVal(c.temp)
-		increaseStack := lst.factory.NewCompoundAssignment().SetAssignee(lst.factory.NewStackPtr()).SetLeft(lst.factory.NewStackPtr()).SetRight(lst.factory.NewLiteral().SetValue("1")).SetOperator("+")
+		// increaseStack := lst.factory.NewCompoundAssignment().SetAssignee(lst.factory.NewStackPtr()).SetLeft(lst.factory.NewStackPtr()).SetRight(lst.factory.NewLiteral().SetValue("1")).SetOperator("+")
 
 		/*
 			t1 = F + offset
 			stack[t1] = t2
-			SP = SP + 1
 		*/
 
 		newDclStmt := []TACStmtI{
 			getAddress,
 			saveVal,
-			increaseStack,
 		}
 
 		insertStmtsAfter(lst.block, newDclStmt, c.decl.stmt)
@@ -150,7 +153,10 @@ func (lst *Lifesaver) FixCases() {
 				saveVal,
 			}
 
-			insertStmtsBefore(lst.block, newUsedStmt, u.stmt)
+			insertStmtsAfter(lst.block, newUsedStmt, u.centinel)
+
+			fmt.Println("")
+			fmt.Println("inserting after: ", u.centinel.String())
 
 			// and replace the temp
 			switch s := u.stmt.(type) {
@@ -166,6 +172,24 @@ func (lst *Lifesaver) FixCases() {
 			}
 		}
 		lst.initialOffest++
+		lst.Reserve++
+	}
+
+	// then set the new size of the frame
+	allocParams := lst.factory.GetBuiltinParams("__alloc_frame")
+	frameSizeTemp := allocParams[0]
+
+	for _, stmt := range *lst.block {
+		switch s := stmt.(type) {
+		case *SimpleAssignment:
+			if s.Assignee == frameSizeTemp {
+				prevVal, ok := strconv.Atoi(s.Val.String())
+				if ok != nil {
+					panic("Error parsing frame size")
+				}
+				s.Val = lst.factory.NewLiteral().SetValue(strconv.Itoa(prevVal + lst.Reserve))
+			}
+		}
 	}
 }
 
@@ -197,6 +221,7 @@ type LifeSaverTableEntry struct {
 	temp           *Temp
 	appearanceType string
 	stmt           TACStmtI
+	centinel       TACStmtI
 }
 
 func NewDeclEntry(temp *Temp, stmt TACStmtI) *LifeSaverTableEntry {
@@ -233,11 +258,11 @@ func NewBlockLifesaver(block *[]TACStmtI, funcName string, factory *TACFactory, 
 	}
 }
 
-func NewRecuriveEntry() *LifeSaverTableEntry {
+func NewRecuriveEntry(stmt TACStmtI) *LifeSaverTableEntry {
 	return &LifeSaverTableEntry{
 		temp:           nil,
 		appearanceType: "recursive",
-		stmt:           nil,
+		stmt:           stmt,
 	}
 }
 
@@ -258,6 +283,7 @@ func (ls *Lifesaver) EvalBlock() {
 				decl := NewDeclEntry(temp, s)
 				ls.table.AddEntry(decl)
 			}
+			// there is also the case with StackIndexed and HeapIndexed, but we are going to pretend that they are not there :p
 		case *CompoundAssignment:
 			// t1 = t2 + t3
 
@@ -280,7 +306,7 @@ func (ls *Lifesaver) EvalBlock() {
 
 			if s.Name == ls.funcName {
 				// recursive call
-				recursive := NewRecuriveEntry()
+				recursive := NewRecuriveEntry(s)
 				ls.table.AddEntry(recursive)
 			}
 		}

@@ -330,6 +330,9 @@ func (v *IrVisitor) VisitFuncDecl(ctx *compiler.FuncDeclContext) interface{} {
 	lifesaver := tac.NewBlockLifesaver(&funcBlock, funcName, v.Factory, returnTemp, staticScopeTrace.Correlative+staticScopeTrace.ParamOffset+1)
 	lifesaver.EvalBlock()
 
+	// reserve aditional space
+	staticScopeTrace.Correlative += staticScopeTrace.Correlative + lifesaver.Reserve
+
 	// now we have to add the func tac obj to outer block
 	tacFunc := v.Factory.NewMethodDcl(funcBlock).SetName(funcName)
 	v.Factory.UserBlock = append(v.Factory.UserBlock, tacFunc)
